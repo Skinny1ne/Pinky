@@ -1,0 +1,4011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PINKY</title>
+    
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/"
+        }
+      }
+    </script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.min.js" async onerror="window.__toneLoadFailed = true; console.warn('Tone.js CDN failed to load, audio will be unavailable')"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Special+Elite&display=swap" rel="stylesheet">
+
+    <style>
+        
+        body {
+            font-family: 'Special Elite', cursive;
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            color: #fff;
+            overflow: hidden;
+            cursor: none; 
+        }
+        
+        #custom-cursor {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(139, 0, 0, 0.8);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transition: transform 0.1s ease;
+            box-shadow: 0 0 10px rgba(139, 0, 0, 0.5);
+            transform: translate(-50%, -50%); 
+        }
+        
+        #custom-cursor::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 4px;
+            height: 4px;
+            background: #8b0000;
+            border-radius: 50%;
+        }
+
+        #game-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: none; 
+        }
+        canvas {
+            display: block;
+        }
+
+        
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 300;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.5s ease-out;
+        }
+        
+        #loading-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(139, 0, 0, 0.3);
+            border-top-color: #8b0000;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 2rem;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            font-family: 'Creepster', cursive;
+            font-size: 2rem;
+            color: #8b0000;
+            text-shadow: 0 0 10px #ff0000;
+        }
+
+        
+        .menu-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a0000 50%, #0a0a0a 100%);
+            z-index: 100;
+            animation: bloodPulse 3s ease-in-out infinite;
+        }
+        
+        @keyframes bloodPulse {
+            0%, 100% { background: linear-gradient(135deg, #0a0a0a 0%, #1a0000 50%, #0a0a0a 100%); }
+            50% { background: linear-gradient(135deg, #0a0a0a 0%, #2a0000 50%, #0a0a0a 100%); }
+        }
+
+        .title {
+            font-family: 'Creepster', cursive;
+            font-size: 8rem;
+            color: #8b0000;
+            text-shadow: 
+                0 0 20px #ff0000,
+                0 0 40px #ff0000,
+                0 0 60px #8b0000,
+                5px 5px 10px #000;
+            animation: flicker 2s infinite, drip 4s ease-in-out infinite;
+            margin-bottom: 2rem;
+            letter-spacing: 0.5rem;
+        }
+
+        @keyframes flicker {
+            0%, 100% { opacity: 1; text-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000, 0 0 60px #8b0000; }
+            50% { opacity: 0.8; text-shadow: 0 0 10px #ff0000, 0 0 20px #8b0000; }
+            75% { opacity: 1; }
+            80% { opacity: 0.9; }
+        }
+        
+        @keyframes drip {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(5px); }
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 3rem;
+            letter-spacing: 0.3rem;
+            text-transform: uppercase;
+        }
+
+        .menu-button {
+            font-family: 'Special Elite', cursive;
+            font-size: 1.5rem;
+            padding: 1rem 3rem;
+            margin: 0.75rem;
+            background: linear-gradient(145deg, #1a0000, #0a0000);
+            color: #8b0000;
+            border: 3px solid #8b0000;
+            border-radius: 0;
+            cursor: none;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.2rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(139, 0, 0, 0.3);
+        }
+        
+        .menu-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(139, 0, 0, 0.3), transparent);
+            transition: left 0.5s;
+        }
+        
+        .menu-button:hover::before {
+            left: 100%;
+        }
+        
+        .menu-button:hover {
+            background: linear-gradient(145deg, #2a0000, #1a0000);
+            color: #ff0000;
+            border-color: #ff0000;
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.5);
+            transform: scale(1.05);
+        }
+        
+        .warning {
+            position: absolute;
+            bottom: 3rem;
+            font-size: 0.9rem;
+            color: #8b0000;
+            text-align: center;
+            max-width: 600px;
+            padding: 0 2rem;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        .settings-content {
+            background: linear-gradient(145deg, #0a0a0a, #1a0000);
+            padding: 3rem 5rem;
+            border-radius: 0;
+            border: 3px solid #8b0000;
+            box-shadow: 0 0 40px rgba(139, 0, 0, 0.5);
+        }
+        
+        .settings-title {
+            font-family: 'Creepster', cursive;
+            font-size: 3rem;
+            color: #8b0000;
+            text-align: center;
+            margin-bottom: 2rem;
+            text-shadow: 0 0 10px #ff0000;
+        }
+        
+        .slider-label {
+            display: block;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.1rem;
+        }
+        
+        input[type="range"] {
+            width: 350px;
+            height: 8px;
+            background: #1a0000;
+            border: 2px solid #8b0000;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+            cursor: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #8b0000;
+            cursor: none;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(139, 0, 0, 0.8);
+        }
+        
+        .key-hint {
+            color: #ff0000;
+            font-weight: bold;
+            text-shadow: 0 0 5px #8b0000;
+        }
+
+        
+        #hud {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+            display: none;
+            color: white;
+        }
+        
+        #vignette {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, transparent 30%, rgba(0, 0, 0, 0.8) 100%);
+            pointer-events: none;
+        }
+        
+        #static-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(255, 255, 255, 0.03) 2px,
+                rgba(255, 255, 255, 0.03) 4px
+            );
+            animation: static 0.1s infinite;
+            pointer-events: none;
+            opacity: 0.3;
+        }
+        
+        @keyframes static {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(4px); }
+        }
+
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 6px;
+            height: 6px;
+            background-color: rgba(139, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 5px rgba(139, 0, 0, 0.8);
+        }
+        
+        #prompt {
+            position: absolute;
+            bottom: 25%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.4rem;
+            background: linear-gradient(145deg, rgba(10, 0, 0, 0.9), rgba(26, 0, 0, 0.9));
+            padding: 1rem 2rem;
+            border: 2px solid #8b0000;
+            border-radius: 0;
+            display: none;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(139, 0, 0, 0.5);
+            pointer-events: auto;
+            cursor: none;
+        }
+
+        #inventory {
+            position: absolute;
+            bottom: 2rem;
+            right: 2rem;
+            display: grid;
+            grid-template-columns: repeat(3, 80px);
+            gap: 1rem;
+        }
+        .inventory-slot {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(145deg, rgba(10, 0, 0, 0.8), rgba(26, 0, 0, 0.8));
+            border: 3px solid rgba(139, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.7rem;
+            text-align: center;
+            padding: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.05rem;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+        .inventory-slot.filled {
+            background: linear-gradient(145deg, rgba(0, 50, 0, 0.8), rgba(0, 26, 0, 0.8));
+            border-color: rgba(0, 255, 0, 0.5);
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+            animation: itemGlow 2s ease-in-out infinite;
+        }
+        
+        @keyframes itemGlow {
+            0%, 100% { box-shadow: 0 0 15px rgba(0, 255, 0, 0.3); }
+            50% { box-shadow: 0 0 25px rgba(0, 255, 0, 0.5); }
+        }
+
+        #breath-meter {
+            position: absolute;
+            bottom: 12rem;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 350px;
+            height: 30px;
+            background: linear-gradient(145deg, rgba(10, 0, 0, 0.9), rgba(26, 0, 0, 0.9));
+            border: 3px solid #8b0000;
+            display: none;
+            overflow: hidden;
+        }
+        #breath-bar {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #4a90e2, #2c5aa0);
+            transition: width 0.1s linear;
+            box-shadow: inset 0 0 10px rgba(74, 144, 226, 0.5);
+        }
+        #breath-warning {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.8rem;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 0.1rem;
+            text-shadow: 0 0 5px #000;
+        }
+        
+        #dialogue-box {
+            position: absolute;
+            bottom: 8rem;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            background: linear-gradient(145deg, rgba(10, 0, 0, 0.95), rgba(26, 0, 0, 0.95));
+            border: 3px solid #8b0000;
+            padding: 1.5rem;
+            display: none;
+            text-align: left;
+            z-index: 11;
+            pointer-events: auto;
+            cursor: none;
+        }
+        
+        .dialogue-speaker {
+            font-size: 0.9rem;
+            color: #ff0000;
+            text-transform: uppercase;
+            letter-spacing: 0.2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .dialogue-text {
+            font-size: 1.1rem;
+            color: #ccc;
+            line-height: 1.6;
+        }
+        
+        .dialogue-continue {
+            font-size: 0.8rem;
+            color: #666;
+            text-align: right;
+            margin-top: 1rem;
+            animation: pulse 1.5s infinite;
+        }
+        
+        #fear-indicator {
+            position: absolute;
+            top: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1rem;
+            color: #ff0000;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 0.5rem 1.5rem;
+            border: 2px solid #8b0000;
+            display: none;
+            text-transform: uppercase;
+            letter-spacing: 0.2rem;
+            animation: fearPulse 1s ease-in-out infinite;
+        }
+        
+        @keyframes fearPulse {
+            0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.8; }
+            50% { transform: translateX(-50%) scale(1.05); opacity: 1; }
+        }
+        
+        #chase-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, transparent 20%, rgba(139, 0, 0, 0.4) 100%);
+            display: none;
+            animation: chaseIntensify 0.5s ease-in-out infinite;
+        }
+        
+        @keyframes chaseIntensify {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 0.8; }
+        }
+        
+        #jumpscare-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            z-index: 9998;
+            display: none;
+            background-size: cover;
+            background-position: center;
+        }
+
+        #end-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 200;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #000000 0%, #1a0000 50%, #000000 100%);
+            text-align: center;
+        }
+        #end-title {
+            font-family: 'Creepster', cursive;
+            font-size: 5rem;
+            font-weight: bold;
+            margin-bottom: 2rem;
+            text-shadow: 0 0 20px currentColor;
+            animation: endTitlePulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes endTitlePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        #end-text {
+            font-size: 1.3rem;
+            color: #ccc;
+            max-width: 700px;
+            margin-bottom: 3rem;
+            line-height: 1.8;
+            padding: 0 2rem;
+        }
+        
+        .control-hint {
+            color: #666;
+            margin-top: 1rem;
+        }
+
+        #fade-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #000;
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1.5s ease-in-out;
+        }
+        #fade-overlay.show {
+            opacity: 1;
+        }
+
+        
+        #cinematic-bars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 301;
+            pointer-events: none;
+            display: none;
+        }
+
+        .cinematic-bar-top {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 15%;
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.7), transparent);
+            animation: cinematicBarIn 0.8s ease-out;
+        }
+
+        .cinematic-bar-bottom {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 15%;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.7), transparent);
+            animation: cinematicBarIn 0.8s ease-out;
+        }
+
+        @keyframes cinematicBarIn {
+            from {
+                transform: scaleY(0);
+                opacity: 0;
+            }
+            to {
+                transform: scaleY(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes cinematicBarOut {
+            from {
+                transform: scaleY(1);
+                opacity: 1;
+            }
+            to {
+                transform: scaleY(0);
+                opacity: 0;
+            }
+        }
+
+        
+        @keyframes cinematicZoom {
+            from {
+                transform: scale(1);
+            }
+            to {
+                transform: scale(1.05);
+            }
+        }
+
+        
+        @keyframes cinematicDistortion {
+            0% {
+                filter: none;
+            }
+            25% {
+                filter: brightness(0.8) contrast(1.2);
+            }
+            50% {
+                filter: brightness(1) contrast(1);
+            }
+            75% {
+                filter: brightness(0.9) contrast(1.1);
+            }
+            100% {
+                filter: none;
+            }
+        }
+
+        
+        @keyframes glitchEffect {
+            0% {
+                clip-path: polygon(0 0, 100% 0, 100% 25%, 0 25%);
+                transform: translate(0, 0);
+            }
+            20% {
+                clip-path: polygon(0 50%, 100% 50%, 100% 75%, 0 75%);
+                transform: translate(2px, -2px);
+            }
+            40% {
+                clip-path: polygon(0 10%, 100% 10%, 100% 40%, 0 40%);
+                transform: translate(-2px, 2px);
+            }
+            60% {
+                clip-path: polygon(0 80%, 100% 80%, 100% 100%, 0 100%);
+                transform: translate(1px, -1px);
+            }
+            80% {
+                clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+                transform: translate(0, 0);
+            }
+            100% {
+                clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+                transform: translate(0, 0);
+            }
+        }
+
+        
+        @keyframes redFlash {
+            0% {
+                background-color: transparent;
+            }
+            50% {
+                background-color: rgba(255, 0, 0, 0.6);
+            }
+            100% {
+                background-color: transparent;
+            }
+        }
+
+        
+        @keyframes textReveal {
+            from {
+                letter-spacing: 0.5em;
+                opacity: 0;
+            }
+            to {
+                letter-spacing: normal;
+                opacity: 1;
+            }
+        }
+
+        
+        @keyframes cameraShake {
+            0%, 100% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+            10% {
+                transform: translate(-2px, 2px) rotate(0.5deg);
+            }
+            20% {
+                transform: translate(2px, -2px) rotate(-0.5deg);
+            }
+            30% {
+                transform: translate(-2px, -2px) rotate(0.5deg);
+            }
+            40% {
+                transform: translate(2px, 2px) rotate(-0.5deg);
+            }
+            50% {
+                transform: translate(-1px, 1px) rotate(0.5deg);
+            }
+            60% {
+                transform: translate(1px, -1px) rotate(-0.5deg);
+            }
+            70% {
+                transform: translate(-1px, -1px) rotate(0.5deg);
+            }
+            80% {
+                transform: translate(1px, 1px) rotate(-0.5deg);
+            }
+            90% {
+                transform: translate(-1px, 0px) rotate(0deg);
+            }
+        }
+
+        
+        @keyframes slowMotionPulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        
+        @keyframes ritualGlow {
+            0% {
+                text-shadow: 0 0 20px #8b0000, 0 0 40px #ff0000;
+                transform: scale(1);
+            }
+            50% {
+                text-shadow: 0 0 40px #ff0000, 0 0 80px #ff4444, 0 0 120px #8b0000;
+                transform: scale(1.02);
+            }
+            100% {
+                text-shadow: 0 0 20px #8b0000, 0 0 40px #ff0000;
+                transform: scale(1);
+            }
+        }
+
+        
+        @keyframes mirrorPortalShimmer {
+            0% {
+                opacity: 0.4;
+                filter: blur(2px);
+            }
+            50% {
+                opacity: 0.8;
+                filter: blur(0px);
+            }
+            100% {
+                opacity: 0.4;
+                filter: blur(2px);
+            }
+        }
+
+        
+        @keyframes breathFog {
+            0% {
+                opacity: 0;
+                transform: translateY(0) scale(0.8);
+            }
+            50% {
+                opacity: 0.5;
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(20px) scale(1.2);
+            }
+        }
+
+        
+        @keyframes realityWarp {
+            0% {
+                filter: none;
+            }
+            25% {
+                filter: blur(1px) brightness(0.9);
+            }
+            50% {
+                filter: blur(2px) brightness(0.8);
+            }
+            75% {
+                filter: blur(1px) brightness(0.9);
+            }
+            100% {
+                filter: none;
+            }
+        }
+
+        
+        @keyframes cinematicColorShift {
+            0% {
+                filter: hue-rotate(0deg);
+            }
+            50% {
+                filter: hue-rotate(-10deg);
+            }
+            100% {
+                filter: hue-rotate(0deg);
+            }
+        }
+
+        
+        @keyframes bloodDrip {
+            0% {
+                transform: translateY(0) opacity(1);
+            }
+            100% {
+                transform: translateY(30px) opacity(0);
+            }
+        }
+
+        
+        @keyframes pinkyEmerge {
+            0% {
+                opacity: 0;
+                transform: scale(0.8) translateZ(-50px);
+            }
+            50% {
+                opacity: 0.7;
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateZ(0);
+            }
+        }
+
+        
+        @keyframes dialogueSlideIn {
+            from {
+                transform: translateX(-50%) translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        #dialogue-box {
+            animation: dialogueSlideIn 0.5s ease-out;
+        }
+
+        
+        @keyframes pursuitIntensify {
+            0%, 100% {
+                filter: none;
+                box-shadow: 0 0 20px rgba(139, 0, 0, 0.3);
+            }
+            25% {
+                filter: brightness(0.7);
+                box-shadow: 0 0 40px rgba(255, 0, 0, 0.6);
+            }
+            50% {
+                filter: brightness(0.5) contrast(1.2);
+                box-shadow: 0 0 60px rgba(255, 0, 0, 0.8);
+            }
+            75% {
+                filter: brightness(0.7);
+                box-shadow: 0 0 40px rgba(255, 0, 0, 0.6);
+            }
+        }
+
+    </style>
+</head>
+<body>
+    
+    <div id="custom-cursor"></div>
+
+    
+    <div id="cinematic-bars">
+        <div class="cinematic-bar-top"></div>
+        <div class="cinematic-bar-bottom"></div>
+    </div>
+
+    <div id="loading-screen">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">LOADING NIGHTMARE...</div>
+    </div>
+    
+    <div id="menu-screen" class="menu-screen" style="display: none;">
+        <h1 class="title">PINKY</h1>
+        <p class="subtitle">A South African Nightmare</p>
+        <button id="play-button" class="menu-button">Enter the Bathroom</button>
+        <button id="settings-button" class="menu-button">Settings</button>
+        <p class="warning">⚠ WARNING: This game contains intense horror, jumpscares, and disturbing themes. Headphones strongly recommended.</p>
+    </div>
+    
+    <div id="settings-screen" class="menu-screen" style="display: none;">
+        <div class="settings-content">
+            <h2 class="settings-title">Settings</h2>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <label for="mouse-slider" class="slider-label">Mouse Sensitivity: <span id="mouse-value">0.5</span></label>
+                <input type="range" id="mouse-slider" min="0.1" max="2" step="0.1" value="0.5">
+            </div>
+            
+            <div style="margin-bottom: 2rem;">
+                <h3 class="slider-label" style="margin-bottom: 0.75rem;">Controls:</h3>
+                <p style="color: #999; margin-bottom: 0.5rem;"><span class="key-hint">WASD</span> - Move</p>
+                <p style="color: #999; margin-bottom: 0.5rem;"><span class="key-hint">Mouse</span> - Look Around</p>
+                <p style="color: #999; margin-bottom: 0.5rem;"><span class="key-hint">F</span> - Toggle Flashlight</p>
+                <p style="color: #999; margin-bottom: 0.5rem;"><span class="key-hint">Shift</span> - Run (Makes Noise!)</p>
+                <p style="color: #999; margin-bottom: 0.5rem;"><span class="key-hint">Ctrl</span> - Crouch (Quieter)</p>
+                <p style="color: #999; margin-bottom: 0.5rem;"><span class="key-hint">E</span> - Interact / Pick Up</p>
+                <p style="color: #999; margin-bottom: 0.5rem;"><span class="key-hint">Right Mouse</span> - Hold Breath (While Hiding)</p>
+                <p style="color: #999; margin-bottom: 0.5rem;"><span class="key-hint">ESC</span> - Pause Menu</p>
+            </div>
+
+             <div style="margin-bottom: 2rem;">
+                <h3 class="slider-label" style="margin-bottom: 0.5rem;">Gamepad Support:</h3>
+                <p id="gamepad-status" class="text-gray-500">No controller detected</p>
+            </div>
+            
+            <button id="settings-back-button" class="menu-button" style="width: 100%;">Back</button>
+        </div>
+    </div>
+    
+    <div id="game-container">
+        </div>
+    
+    <div id="hud">
+        <div id="audio-status" style="position:absolute;top:1rem;right:1rem;padding:0.3rem 0.6rem;border:2px solid #8b0000;background:rgba(0,0,0,0.6);color:#ff6666;display:none;z-index:12;font-size:0.9rem;">AUDIO OFF</div>
+        <div id="vignette"></div>
+        <div id="static-overlay"></div>
+        <div id="crosshair"></div>
+        <div id="chase-overlay"></div>
+        <div id="fear-indicator">⚠ IT KNOWS WHERE YOU ARE ⚠</div>
+        <div id="prompt">
+            <span class="key-hint">[E]</span> <span id="prompt-text"></span>
+        </div>
+        <div id="inventory">
+            <div id="inv-key" class="inventory-slot">Rusted Key</div>
+            <div id="inv-crowbar" class="inventory-slot">Crowbar</div>
+            <div id="inv-hammer" class="inventory-slot">Hammer</div>
+            <div id="inv-pole" class="inventory-slot">Janitor Pole</div>
+            <div id="inv-note" class="inventory-slot">Crumpled Note</div>
+        </div>
+        <div id="breath-meter">
+            <div id="breath-bar"></div>
+            <div id="breath-warning">Hold Breath: RMB</div>
+        </div>
+        
+        <div id="dialogue-box">
+            <div class="dialogue-speaker" id="dialogue-speaker">SYSTEM</div>
+            <div class="dialogue-text" id="dialogue-text">Loading...</div>
+            <div class="dialogue-continue" id="dialogue-continue-prompt">[Click or Enter to continue]</div>
+        </div>
+        
+        
+        <div id="message-box" onclick="closeMessageBox()" style="display: none; position: absolute; bottom: 8rem; left: 50%; transform: translateX(-50%); width: 600px; background: linear-gradient(145deg, rgba(10, 0, 0, 0.95), rgba(26, 0, 0, 0.95)); border: 3px solid #8b0000; padding: 1.5rem; text-align: left; z-index: 11; pointer-events: auto; cursor: none;">
+            <div id="message-text" style="font-size: 1.1rem; color: #ccc; line-height: 1.6;"></div>
+            <div style="font-size: 0.8rem; color: #666; text-align: right; margin-top: 1rem; animation: pulse 1.5s infinite;">[Click or Enter to continue]</div>
+        </div>
+    </div>
+    
+    <div id="pause-screen" class="menu-screen" style="display: none; background-color: rgba(0, 0, 0, 0.95);">
+        <h2 class="settings-title">Paused</h2>
+        <button id="resume-button" class="menu-button">Resume</button>
+        <button id="pause-settings-button" class="menu-button">Settings</button>
+        <button id="pause-menu-button" class="menu-button">Abandon Hope (Main Menu)</button>
+    </div>
+
+    <div id="end-screen">
+        <h2 id="end-title">CLAIMED</h2>
+        <p id="end-text">You were dragged into the mirror. Your friends are gone. You are gone. The legend is real.</p>
+        <button id="end-button" class="menu-button">Return to Menu</button>
+        <p class="control-hint">The bathroom still hungers...</p>
+    </div>
+
+    <div id="fade-overlay"></div>
+    <div id="jumpscare-overlay"></div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        
+        import { DecalGeometry } from 'three/addons/geometries/DecalGeometry.js';
+
+        
+        const cursor = document.getElementById('custom-cursor');
+        document.addEventListener('mousemove', (e) => {
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+        });
+        document.addEventListener('mousedown', () => cursor.style.transform = 'translate(-50%, -50%) scale(0.8)');
+        document.addEventListener('mouseup', () => cursor.style.transform = 'translate(-50%, -50%) scale(1)');
+
+        
+        let camera, scene, renderer, player, pinky;
+        let clock = new THREE.Clock();
+        let gameState = 'loading'; 
+        let isPointerLocked = false;
+        let gameSettings = {
+            mouseSensitivity: 0.5,
+            gamepadIndex: null,
+        };
+        
+        const PEEK_CONFIG = {
+            triggerTime: 4.5,
+            shimmerLead: 1.0,
+            probability: 0.25,
+            mirrorHighlightIntensity: 2.0,
+            peekAutoHideMs: 6000,
+            peekSeenDisappearMs: 2000,
+            cornerPeekChance: 0.10,
+            peekCooldownMs: 12000
+        };
+
+        
+        function pickCornerSpawnNearPlayer(maxDist = 12) {
+            if (!player) return null;
+            const candidates = [];
+            for (const obj of collidables) {
+                try {
+                    const box = new THREE.Box3().setFromObject(obj);
+                    const center = box.getCenter(new THREE.Vector3());
+                    const dist = center.distanceTo(player.camera.position);
+                    if (dist <= maxDist) {
+                        
+                        const min = box.min, max = box.max;
+                        const corners = [
+                            new THREE.Vector3(min.x, min.y, min.z), new THREE.Vector3(min.x, min.y, max.z),
+                            new THREE.Vector3(min.x, max.y, min.z), new THREE.Vector3(min.x, max.y, max.z),
+                            new THREE.Vector3(max.x, min.y, min.z), new THREE.Vector3(max.x, min.y, max.z),
+                            new THREE.Vector3(max.x, max.y, min.z), new THREE.Vector3(max.x, max.y, max.z)
+                        ];
+                        for (const c of corners) {
+                            
+                            const dir = c.clone().sub(center).normalize();
+                            const spawn = c.clone().add(dir.multiplyScalar(0.8));
+                            spawn.y = 0; 
+                            candidates.push(spawn);
+                        }
+                    }
+                } catch (e) {  }
+            }
+            if (candidates.length === 0) return null;
+            
+            candidates.sort((a, b) => a.distanceTo(player.camera.position) - b.distanceTo(player.camera.position));
+            return candidates[0].clone();
+        }
+        
+        
+        const loadingScreen = document.getElementById('loading-screen');
+        const menuScreen = document.getElementById('menu-screen');
+        const settingsScreen = document.getElementById('settings-screen');
+        const gameContainer = document.getElementById('game-container');
+        const hud = document.getElementById('hud');
+        const promptElement = document.getElementById('prompt');
+        const promptText = document.getElementById('prompt-text');
+        const pauseScreen = document.getElementById('pause-screen');
+        const endScreen = document.getElementById('end-screen');
+        const endTitle = document.getElementById('end-title');
+        const endText = document.getElementById('end-text');
+        const mouseSlider = document.getElementById('mouse-slider');
+        const mouseValue = document.getElementById('mouse-value');
+        const gamepadStatus = document.getElementById('gamepad-status');
+        const breathMeter = document.getElementById('breath-meter');
+        const breathBar = document.getElementById('breath-bar');
+        const fadeOverlay = document.getElementById('fade-overlay');
+        const jumpscareOverlay = document.getElementById('jumpscare-overlay');
+        const dialogueBox = document.getElementById('dialogue-box');
+        const dialogueSpeaker = document.getElementById('dialogue-speaker');
+        const dialogueText = document.getElementById('dialogue-text');
+        const dialogueContinuePrompt = document.getElementById('dialogue-continue-prompt');
+        const fearIndicator = document.getElementById('fear-indicator');
+        const chaseOverlay = document.getElementById('chase-overlay');
+        
+        
+        const textureLoader = new THREE.TextureLoader();
+        
+        
+        function createBloodTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            
+            
+            ctx.fillStyle = '#8b0000';
+            
+            
+            for (let i = 0; i < 50; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                const radius = Math.random() * 30 + 5;
+                const opacity = Math.random() * 0.7 + 0.3;
+                
+                ctx.globalAlpha = opacity;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                
+                if (Math.random() > 0.7) {
+                    ctx.fillRect(x - 2, y + radius, 4, Math.random() * 50 + 10);
+                }
+            }
+            
+            ctx.globalAlpha = 1;
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.magFilter = THREE.LinearFilter;
+            texture.minFilter = THREE.LinearFilter;
+            return texture;
+        }
+        
+        const bloodTexture = createBloodTexture();
+
+        // Rolling bloody-heads, exit markers, and movable crates
+        const rollingHeads = [];
+        const exitMarkers = [];
+        const movableCrates = [];
+
+        // Crowbar hold state used when the player pries the chain off the door
+        const crowbarHold = { active: false, startTime: 0, duration: 10 * 1000, targetDoor: null, progress: 0, soundPlaying: false };
+
+        function spawnRollingHead(origin = null) {
+            try {
+                const start = origin ? origin.clone() : player.camera.position.clone().add(new THREE.Vector3(0, 0, -6).applyQuaternion(player.camera.quaternion));
+                const headGeo = new THREE.SphereGeometry(0.4, 12, 12);
+                const headMat = new THREE.MeshStandardMaterial({ map: bloodTexture, color: 0x660000, emissive: 0x220000 });
+                const head = new THREE.Mesh(headGeo, headMat);
+                // start slightly above ground
+                head.position.copy(start);
+                head.position.y = 0.4;
+                // small rolling velocity forward
+                const forward = player.camera.getWorldDirection(new THREE.Vector3());
+                forward.y = 0; forward.normalize();
+                head.userData = { vel: forward.multiplyScalar(2 + Math.random() * 2), life: 4.0, rotSpeed: 6 * (Math.random() > 0.5 ? 1 : -1) };
+                scene.add(head);
+                levelObjects.push(head);
+                rollingHeads.push(head);
+            } catch (e) { console.warn('spawnRollingHead failed', e); }
+        }
+
+        function addBloodDecals(count = 6) {
+            try {
+                const walls = collidables.filter(c => !c.userData.isMirror && !c.userData.isInteractable);
+                for (let i = 0; i < count; i++) {
+                    if (walls.length === 0) break;
+                    const wall = walls[Math.floor(Math.random() * walls.length)];
+                    const size = new THREE.Vector3(1 + Math.random() * 2, 1 + Math.random() * 2, 1);
+                    const pos = wall.position.clone();
+                    pos.x += (Math.random() - 0.5) * Math.min(4, (wall.geometry.boundingBox ? wall.geometry.boundingBox.getSize(new THREE.Vector3()).x : 4));
+                    pos.y = 1 + Math.random() * 2;
+                    pos.z += (Math.random() - 0.5) * Math.min(4, (wall.geometry.boundingBox ? wall.geometry.boundingBox.getSize(new THREE.Vector3()).z : 4));
+                    const rot = new THREE.Euler(0, Math.random() * Math.PI * 2, 0);
+                    const decal = new THREE.Mesh(new DecalGeometry(wall, pos, rot, size), new THREE.MeshStandardMaterial({ map: bloodTexture, transparent: true, depthTest: true, depthWrite: false }));
+                    scene.add(decal);
+                    levelObjects.push(decal);
+                }
+            } catch (e) { console.warn('addBloodDecals failed', e); }
+        }
+
+        function spawnCrates(count = 2) {
+            try {
+                // pick safe spawn positions and place crates as collidable, movable objects
+                const candidates = itemSpawnPoints.slice().sort(() => Math.random() - 0.5);
+                let placed = 0;
+                for (const p of candidates) {
+                    if (placed >= count) break;
+                    // quick collision test (ensure crate sits in free space)
+                    const testCenter = new THREE.Vector3(p.x, 0.45, p.z);
+                    const testBox = new THREE.Box3().setFromCenterAndSize(testCenter, new THREE.Vector3(1.2, 1.0, 1.2));
+                    let colliding = false;
+                    for (const c of collidables) {
+                        try {
+                            const box = new THREE.Box3().setFromObject(c);
+                            if (box.intersectsBox(testBox)) { colliding = true; break; }
+                        } catch(e) {}
+                    }
+                    if (colliding) continue;
+
+                    const mat = new THREE.MeshStandardMaterial({ color: 0x6b4528, roughness: 0.9 });
+                    const crate = new THREE.Mesh(new THREE.BoxGeometry(1, 0.9, 1), mat);
+                    crate.position.copy(p).setY(0.45);
+                    // To allow collision-based pushing we do NOT mark the crate as isInteractable
+                    // but we mark it movable so raycast can still detect it explicitly.
+                    crate.userData = { isMovable: true, isPushable: true, type: 'crate' };
+                    scene.add(crate);
+                    levelObjects.push(crate);
+                    collidables.push(crate);
+                    movableCrates.push(crate);
+                    placed++;
+                    console.log('spawnCrates: placed crate at', crate.position);
+                }
+            } catch (e) { console.warn('spawnCrates failed', e); }
+        }
+
+        let sounds = {};
+        let soundsInitialized = false;
+        let soundsInitRetries = 0;
+        
+        function initSounds() {
+            
+            if (typeof Tone === 'undefined' || !Tone.Synth || window.__toneLoadFailed) {
+                
+                if (window.__toneLoadFailed) {
+                    console.warn("⚠️ Tone.js CDN error detected. Running in silent audio fallback.");
+                    const mock = {
+                        triggerAttackRelease: () => {},
+                        triggerAttack: () => {},
+                        triggerRelease: () => {},
+                        toDestination: function(){ return this; },
+                        volume: {
+                            value: 0,
+                            
+                            linearRampTo: function(target, time) { this.value = target; },
+                            linearRampToValueAtTime: function(target, time) { this.value = target; },
+                            setValueAtTime: function(target, time) { this.value = target; },
+                            cancelScheduledValues: function() {  }
+                        }
+                    };
+                    sounds = {
+                        footstep: mock,
+                        hiss: mock,
+                        squeak: mock,
+                        doorSlam: mock,
+                        jumpscare: mock,
+                        pickup: mock,
+                        hammerHit: mock,
+                        worldGroan: mock,
+                        ambience: mock,
+                        mirrorSlam: mock
+                    };
+                    soundsInitialized = true; 
+                    try { showAudioDisabledHUD(); } catch(e) {}
+                    return;
+                }
+
+                
+                soundsInitRetries++;
+                if (soundsInitRetries < 30) {
+                    setTimeout(initSounds, 150); 
+                    return;
+                } else {
+                    console.warn("⚠️ Tone.js audio library failed to load after timeout. Audio will be unavailable. Running silent fallback.");
+                    const mock = {
+                        triggerAttackRelease: () => {},
+                        triggerAttack: () => {},
+                        triggerRelease: () => {},
+                        toDestination: function(){ return this; },
+                        volume: {
+                            value: 0,
+                            linearRampTo: function(target, time) { this.value = target; },
+                            linearRampToValueAtTime: function(target, time) { this.value = target; },
+                            setValueAtTime: function(target, time) { this.value = target; },
+                            cancelScheduledValues: function() {  }
+                        }
+                    };
+                    sounds = {
+                        footstep: mock,
+                        hiss: mock,
+                        squeak: mock,
+                        doorSlam: mock,
+                        jumpscare: mock,
+                        pickup: mock,
+                        hammerHit: mock,
+                        worldGroan: mock,
+                        ambience: mock,
+                        mirrorSlam: mock
+                    };
+                    soundsInitialized = true; 
+                    try { showAudioDisabledHUD(); } catch(e) {}
+                    return;
+                }
+            }
+
+            if (soundsInitialized) return;
+
+            try {
+                
+                Tone.start().then(() => {
+                    console.log("✓ Tone.js audio context started");
+                }).catch(err => {
+                    console.log("Tone note:", err.message);
+                });
+            } catch (e) {
+                console.log("Tone note:", e.message);
+            }
+            
+            
+            
+            
+            sounds.footstep = new Tone.NoiseSynth({
+                noise: { type: 'brown' },
+                envelope: { attack: 0.005, decay: 0.1, sustain: 0 }
+            }).toDestination();
+            sounds.footstep.volume.value = -5; 
+
+            sounds.hiss = new Tone.NoiseSynth({
+                noise: { type: 'white' },
+                filter: { type: 'bandpass', Q: 1, frequency: 4000 },
+                envelope: { attack: 0.5, decay: 1, sustain: 0.5 }
+            }).toDestination();
+            sounds.hiss.volume.value = -Infinity;
+
+            sounds.squeak = new Tone.Synth({
+                oscillator: { type: 'sawtooth' },
+                envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.1 }
+            }).toDestination();
+            sounds.squeak.volume.value = -2;
+
+            sounds.doorSlam = new Tone.NoiseSynth({
+                noise: { type: 'white' },
+                envelope: { attack: 0.01, decay: 0.3, sustain: 0 }
+            }).toDestination();
+            sounds.doorSlam.volume.value = -3;
+
+            sounds.jumpscare = new Tone.NoiseSynth({
+                noise: { type: 'white' },
+                envelope: { attack: 0.01, decay: 0.5, sustain: 0 }
+            }).toDestination();
+            sounds.jumpscare.volume.value = +3;
+
+            sounds.pickup = new Tone.Synth().toDestination();
+            sounds.pickup.volume.value = -5;
+
+            sounds.hammerHit = new Tone.NoiseSynth({
+                noise: { type: 'white' },
+                envelope: { attack: 0.01, decay: 0.3, sustain: 0 }
+            }).toDestination();
+            sounds.hammerHit.volume.value = -1;
+
+            sounds.worldGroan = new Tone.NoiseSynth({
+                noise: { type: 'pink' },
+                filter: { type: 'lowpass', Q: 1, frequency: 150 },
+                envelope: { attack: 1.5, decay: 2.0, sustain: 0 }
+            }).toDestination();
+            sounds.worldGroan.volume.value = -1;
+            
+            sounds.ambience = new Tone.NoiseSynth({
+                noise: { type: 'brown' },
+                filter: { type: 'lowpass', Q: 0.5, frequency: 100 },
+                envelope: { attack: 5, decay: 0.1, sustain: 1 }
+            }).toDestination();
+            sounds.ambience.volume.value = -30;
+            sounds.ambience.triggerAttack();
+            
+            sounds.mirrorSlam = new Tone.NoiseSynth({
+                noise: { type: 'white' },
+                envelope: { attack: 0.01, decay: 0.2, sustain: 0 }
+            }).toDestination();
+            sounds.mirrorSlam.volume.value = 0;
+
+            soundsInitialized = true;
+            console.log("Sounds initialized");
+        }
+
+        
+        function showAudioDisabledHUD() {
+            try {
+                const el = document.getElementById('audio-status');
+                if (el) el.style.display = 'block';
+            } catch (e) {
+                
+            }
+        }
+
+        
+        
+        function findSafeSpawn(origin, collidables, maxRadius = 10, step = 0.5, samplesPerRing = 16) {
+            if (!player) return null;
+            
+            const originalCamPos = player.camera.position.clone();
+            const originalColliderPos = player.collider.position.clone();
+
+            
+            player.camera.position.copy(origin);
+            player.collider.position.copy(origin);
+            player.collider.position.y -= (player.height - player.height) / 2; 
+            if (!player.checkCollisions(collidables)) {
+                
+                player.camera.position.copy(originalCamPos);
+                player.collider.position.copy(originalColliderPos);
+                return origin.clone();
+            }
+
+            const tmp = new THREE.Vector3();
+            for (let r = step; r <= maxRadius; r += step) {
+                for (let s = 0; s < samplesPerRing; s++) {
+                    const angle = (s / samplesPerRing) * Math.PI * 2;
+                    tmp.set(Math.cos(angle) * r, origin.y, Math.sin(angle) * r);
+                    tmp.add(origin);
+                    
+                    tmp.y = origin.y;
+
+                    player.camera.position.copy(tmp);
+                    player.collider.position.copy(tmp);
+                    player.collider.position.y -= (player.height - player.height) / 2;
+                    if (!player.checkCollisions(collidables)) {
+                        
+                        player.camera.position.copy(originalCamPos);
+                        player.collider.position.copy(originalColliderPos);
+                        return tmp.clone();
+                    }
+                }
+            }
+
+            
+            player.camera.position.copy(originalCamPos);
+            player.collider.position.copy(originalColliderPos);
+            return null;
+        }
+        
+        
+        function showDialogue(speaker, text, autoHideAfterMs = 0) {
+            dialogueSpeaker.textContent = speaker;
+            dialogueText.textContent = text;
+            dialogueBox.style.display = 'block';
+            
+            if (autoHideAfterMs > 0 && autoHideAfterMs < 8000) autoHideAfterMs = 8000;
+            dialogueContinuePrompt.style.display = autoHideAfterMs > 0 ? 'none' : 'block';
+
+            
+            if (autoHideAfterMs > 0) {
+                setTimeout(() => {
+                    hideDialogue();
+                }, autoHideAfterMs);
+            }
+        }
+        
+        function hideDialogue() {
+            dialogueBox.style.display = 'none';
+        }
+        
+        
+        function showMessageBox(message) {
+            const messageBox = document.getElementById('message-box');
+            const messageText = document.getElementById('message-text');
+            messageText.textContent = message;
+            messageBox.style.display = 'block';
+        }
+        
+        window.closeMessageBox = () => {
+            const messageBox = document.getElementById('message-box');
+            messageBox.style.display = 'none';
+        }
+
+        
+        class Player {
+            constructor() {
+                this.height = 1.8;
+                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+                this.camera.position.set(0, this.height, 2); 
+                
+                this.euler = new THREE.Euler(0, 0, 0, 'YXZ');
+                this.vector = new THREE.Vector3();
+                this.direction = new THREE.Vector3();
+                this.controlsLocked = true;
+
+                this.keys = {
+                    forward: false, backward: false, left: false, right: false,
+                    run: false, crouch: false, interact: false, holdBreath: false, flashlight: false
+                };
+                
+                this.isCrouching = false;
+                this.isMoving = false;
+                this.isHiding = false;
+                this.footstepTimer = 0;
+                this.fearLevel = 0;
+                this.mirrorStareTimer = 0;
+                this.flickerTimer = 0; 
+
+                this.breath = 100;
+                this.breathDepletionRate = 15;
+                this.breathRegenRate = 20;
+
+                this.inventory = {
+                    key: false, crowbar: false, hammer: false, pole: false, note: false
+                };
+
+                this.collider = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.3, 0.3, this.height, 8),
+                    new THREE.MeshBasicMaterial({ visible: false })
+                );
+                
+                
+                this.flashlight = new THREE.SpotLight(0xffffee, 0, 40, Math.PI / 4, 0.3, 2); 
+                this.flashlight.position.set(0, 0, 0.1);
+                this.flashlight.target.position.set(0, 0, -1);
+                this.camera.add(this.flashlight);
+                this.camera.add(this.flashlight.target);
+                this.flashlightFlicker = 0;
+                this.flashlightOn = false; 
+            }
+
+            initControls() {
+                document.addEventListener('mousemove', this.onMouseMove.bind(this));
+                document.addEventListener('keydown', this.onKeyDown.bind(this));
+                document.addEventListener('keyup', this.onKeyUp.bind(this));
+                document.addEventListener('mousedown', this.onMouseDown.bind(this));
+                document.addEventListener('mouseup', this.onMouseUp.bind(this));
+            }
+
+            onMouseMove(event) {
+                if (!isPointerLocked) return;
+                const movementX = event.movementX || 0;
+                const movementY = event.movementY || 0;
+
+                this.euler.setFromQuaternion(this.camera.quaternion);
+                this.euler.y -= movementX * 0.002 * gameSettings.mouseSensitivity;
+                this.euler.x -= movementY * 0.002 * gameSettings.mouseSensitivity;
+                this.euler.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.euler.x));
+                this.camera.quaternion.setFromEuler(this.euler);
+            }
+            
+            onKeyDown(event) {
+                
+                if (gameState === 'intro') {
+                    if (event.code === 'Enter' || event.code === 'KeyE') {
+                        event.preventDefault();
+                        handleIntroInput();
+                    }
+                    return;
+                }
+                
+                
+                const messageBox = document.getElementById('message-box');
+                if (gameState === 'playing' && messageBox.style.display === 'block') {
+                    if (event.code === 'Enter') {
+                        event.preventDefault();
+                        closeMessageBox();
+                    }
+                }
+                
+                
+                if (gameState === 'playing' && dialogueBox.style.display === 'block') {
+                    if (event.code === 'Enter') {
+                        event.preventDefault();
+                        advanceIntro();
+                    }
+                }
+                
+                if (this.controlsLocked || gameState !== 'playing') return;
+
+                switch (event.code) {
+                    case 'KeyW': case 'ArrowUp': this.keys.forward = true; console.log('INPUT: KeyDown -> forward'); break;
+                    case 'KeyS': case 'ArrowDown': this.keys.backward = true; console.log('INPUT: KeyDown -> backward'); break;
+                    case 'KeyA': case 'ArrowLeft': this.keys.left = true; console.log('INPUT: KeyDown -> left'); break;
+                    case 'KeyD': case 'ArrowRight': this.keys.right = true; console.log('INPUT: KeyDown -> right'); break;
+                    case 'ShiftLeft': this.keys.run = true; console.log('INPUT: KeyDown -> run'); break;
+                    case 'ControlLeft': this.keys.crouch = true; console.log('INPUT: KeyDown -> crouch'); break;
+                    case 'KeyE': this.keys.interact = true; console.log('INPUT: KeyDown -> interact'); break;
+                    case 'KeyF': this.keys.flashlight = true; console.log('INPUT: KeyDown -> flashlight'); break;
+                    case 'KeyP':
+                        
+                        try { summonPinky(); } catch(e) { console.error('summonPinky failed', e); }
+                        break;
+                }
+            }
+
+            onKeyUp(event) {
+                
+                if (gameState === 'intro') return;
+                
+                
+                if (this.controlsLocked) return;
+
+                switch (event.code) {
+                    case 'KeyW': case 'ArrowUp': this.keys.forward = false; console.log('INPUT: KeyUp -> forward'); break;
+                    case 'KeyS': case 'ArrowDown': this.keys.backward = false; console.log('INPUT: KeyUp -> backward'); break;
+                    case 'KeyA': case 'ArrowLeft': this.keys.left = false; console.log('INPUT: KeyUp -> left'); break;
+                    case 'KeyD': case 'ArrowRight': this.keys.right = false; console.log('INPUT: KeyUp -> right'); break;
+                    case 'ShiftLeft': this.keys.run = false; console.log('INPUT: KeyUp -> run'); break;
+                    case 'ControlLeft': this.keys.crouch = false; console.log('INPUT: KeyUp -> crouch'); break;
+                    case 'KeyE': this.keys.interact = false; console.log('INPUT: KeyUp -> interact'); break;
+                    case 'KeyF':
+                        if (this.keys.flashlight) {
+                            this.flashlightOn = !this.flashlightOn;
+                        }
+                        this.keys.flashlight = false;
+                        console.log('INPUT: KeyUp -> flashlight');
+                        break;
+                    case 'Escape': togglePause(); break;
+                }
+            }
+
+            onMouseDown(event) {
+                if (gameState === 'intro') {
+                    handleIntroInput();
+                    return;
+                }
+                if (gameState !== 'playing') return;
+                if (event.button === 2) this.keys.holdBreath = true; 
+                if (event.button === 0) this.keys.interact = true; 
+            }
+            
+            onMouseUp(event) {
+                if (gameState !== 'playing') return;
+                if (event.button === 2) this.keys.holdBreath = false; 
+                if (event.button === 0) this.keys.interact = false; 
+            }
+            
+            handleGamepad(delta) {
+                if (gameSettings.gamepadIndex == null) return;
+                const gamepad = navigator.getGamepads()[gameSettings.gamepadIndex];
+                if (!gamepad) return;
+
+                const lookX = gamepad.axes[2];
+                const lookY = gamepad.axes[3];
+                if (Math.abs(lookX) > 0.1) this.euler.y -= lookX * 0.03 * gameSettings.mouseSensitivity;
+                if (Math.abs(lookY) > 0.1) this.euler.x -= lookY * 0.03 * gameSettings.mouseSensitivity;
+                this.euler.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.euler.x));
+                this.camera.quaternion.setFromEuler(this.euler);
+                
+                if (gameState === 'intro' || this.controlsLocked) {
+                    if(gamepad.buttons[2].pressed) handleIntroInput(); 
+                    return;
+                }
+
+                const moveX = gamepad.axes[0];
+                const moveY = gamepad.axes[1];
+                this.keys.forward = moveY < -0.1;
+                this.keys.backward = moveY > 0.1;
+                this.keys.left = moveX < -0.1;
+                this.keys.right = moveX > 0.1;
+                this.keys.run = gamepad.buttons[10].pressed; 
+                this.keys.crouch = gamepad.buttons[1].pressed; 
+                this.keys.interact = gamepad.buttons[2].pressed; 
+                this.keys.holdBreath = gamepad.buttons[6].pressed; 
+                
+                if(gamepad.buttons[3].pressed && !this.keys.flashlight) { 
+                    this.flashlightOn = !this.flashlightOn;
+                    this.keys.flashlight = true; 
+                } else if (!gamepad.buttons[3].pressed) {
+                    this.keys.flashlight = false;
+                }
+            }
+
+            update(delta, collidables) {
+                this.handleGamepad(delta);
+                
+                if (this.controlsLocked) return;
+                
+                
+                const speed = (this.keys.run && !this.isCrouching ? 5 : 2.5) * (this.isCrouching ? 0.6 : 1);
+                
+                
+                this.direction.z = Number(this.keys.forward) - Number(this.keys.backward);
+                this.direction.x = Number(this.keys.left) - Number(this.keys.right);
+                this.direction.normalize();
+
+                
+                this.vector.copy(this.camera.getWorldDirection(new THREE.Vector3()));
+                this.vector.y = 0; 
+                this.vector.normalize();
+
+                const rightVector = new THREE.Vector3().crossVectors(this.camera.up, this.vector).normalize();
+                
+                const moveVector = new THREE.Vector3();
+                moveVector.add(this.vector.multiplyScalar(this.direction.z));
+                moveVector.add(rightVector.multiplyScalar(this.direction.x));
+                moveVector.normalize().multiplyScalar(speed * delta);
+                
+                this.isMoving = this.keys.forward || this.keys.backward || this.keys.left || this.keys.right;
+
+                const targetHeight = this.keys.crouch ? 1.0 : this.height;
+                this.camera.position.y += (targetHeight - this.camera.position.y) * 0.1;
+                this.isCrouching = this.keys.crouch;
+                
+                this.collider.position.copy(this.camera.position);
+                this.collider.position.y -= (this.height - targetHeight) / 2; 
+                this.collider.scale.y = this.isCrouching ? 0.5 : 1;
+                
+                
+                this.camera.position.x += moveVector.x;
+                this.collider.position.x = this.camera.position.x;
+                if (this.checkCollisions(collidables)) {
+                    this.camera.position.x -= moveVector.x;
+                        // If movement collides, attempt to push movable crates in the direction of movement
+                        try {
+                            const playerBox = new THREE.Box3().setFromCenterAndSize(this.camera.position.clone(), new THREE.Vector3(0.6, this.height, 0.6));
+                            for (const crate of movableCrates) {
+                                try {
+                                    const crateBox = new THREE.Box3().setFromObject(crate);
+                                    if (playerBox.intersectsBox(crateBox)) {
+                                        // try to move crate by the attempted vector
+                                        crate.position.x += moveVector.x;
+                                        const crateTestBox = new THREE.Box3().setFromObject(crate);
+                                        let blocked = false;
+                                        for (const c of collidables) {
+                                            if (c === crate) continue;
+                                            try { if (crateTestBox.intersectsBox(new THREE.Box3().setFromObject(c))) { blocked = true; break; } } catch(e) {}
+                                        }
+                                        if (blocked) {
+                                            crate.position.x -= moveVector.x;
+                                        } else {
+                                            // dragging sound and alert Pinky
+                                            if (sounds.squeak) sounds.squeak.triggerAttackRelease('C2', '0.1n');
+                                            if (pinky) { pinky.setState('hunt'); pinky.hearSound(this.camera.position, 50); }
+                                        }
+                                    }
+                                } catch (e) {}
+                            }
+                        } catch(e) {}
+                        try { console.log('MOVE BLOCKED X at', this.camera.position.clone(), 'attempted', moveVector.x); } catch(e) {}
+                }
+                
+                
+                this.camera.position.z += moveVector.z;
+                this.collider.position.z = this.camera.position.z;
+                if (this.checkCollisions(collidables)) {
+                    this.camera.position.z -= moveVector.z;
+                    // Attempt to push movable crates when colliding on Z axis
+                    try {
+                        const playerBox = new THREE.Box3().setFromCenterAndSize(this.camera.position.clone(), new THREE.Vector3(0.6, this.height, 0.6));
+                        for (const crate of movableCrates) {
+                            try {
+                                const crateBox = new THREE.Box3().setFromObject(crate);
+                                if (playerBox.intersectsBox(crateBox)) {
+                                    crate.position.z += moveVector.z;
+                                    const crateTestBox = new THREE.Box3().setFromObject(crate);
+                                    let blocked = false;
+                                    for (const c of collidables) {
+                                        if (c === crate) continue;
+                                        try { if (crateTestBox.intersectsBox(new THREE.Box3().setFromObject(c))) { blocked = true; break; } } catch(e) {}
+                                    }
+                                    if (blocked) {
+                                        crate.position.z -= moveVector.z;
+                                    } else {
+                                        if (sounds.squeak) sounds.squeak.triggerAttackRelease('C2', '0.1n');
+                                        if (pinky) { pinky.setState('hunt'); pinky.hearSound(this.camera.position, 50); }
+                                    }
+                                }
+                            } catch (e) {}
+                        }
+                    } catch(e) {}
+                    try { console.log('MOVE BLOCKED Z at', this.camera.position.clone(), 'attempted', moveVector.z); } catch(e) {}
+                }
+                
+                this.collider.position.copy(this.camera.position);
+                this.collider.position.y -= (this.height - targetHeight) / 2;
+
+                
+                this.footstepTimer -= delta;
+                if (this.isMoving && this.footstepTimer <= 0) {
+                    if (sounds.footstep) sounds.footstep.triggerAttackRelease(0.1);
+                    this.footstepTimer = this.keys.run ? 0.35 : 0.6;
+                    if (pinky) {
+                        const radius = this.keys.run ? 20 : (this.isCrouching ? 6 : 12);
+                        pinky.hearSound(this.camera.position, radius);
+                    }
+                }
+
+                this.updateHiding(delta, collidables);
+                this.updateFear(delta);
+                this.updateFlashlight(delta);
+            }
+            
+            checkCollisions(collidables) {
+                const playerBox = new THREE.Box3().setFromObject(this.collider);
+                for (const object of collidables) {
+                    if (object.userData.isInteractable || object.userData.type === 'sewer' || object.userData.isMirror) continue;
+                    
+                    const objectBox = new THREE.Box3().setFromObject(object);
+                    if (playerBox.intersectsBox(objectBox)) return true;
+                }
+                return false;
+            }
+
+            updateHiding(delta, collidables) {
+                this.isHiding = false;
+                const playerBox = new THREE.Box3().setFromObject(this.collider);
+                for (const object of collidables) {
+                    if (object.userData.isHidingSpot) {
+                        const objectBox = new THREE.Box3().setFromObject(object);
+                        if (playerBox.intersectsBox(objectBox)) {
+                            this.isHiding = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (this.isHiding) {
+                    if (this.keys.holdBreath) {
+                        this.breath -= this.breathDepletionRate * delta;
+                        if (this.breath <= 0) {
+                            this.breath = 0;
+                            this.keys.holdBreath = false;
+                            if (sounds.jumpscare) sounds.jumpscare.triggerAttackRelease(0.1); 
+                            if (pinky) pinky.hearSound(this.camera.position, 30);
+                        }
+                    } else {
+                        this.breath += this.breathRegenRate * delta;
+                        this.breath = Math.min(this.breath, 100);
+                    }
+                    breathMeter.style.display = 'block';
+                    breathBar.style.width = this.breath + '%';
+                    breathBar.style.background = this.breath < 30 ? 'linear-gradient(90deg, #e74c3c, #c0392b)' : 'linear-gradient(90deg, #4a90e2, #2c5aa0)';
+                } else {
+                    this.breath = Math.min(this.breath + this.breathRegenRate * delta, 100);
+                    breathMeter.style.display = 'none';
+                }
+            }
+
+            updateFear(delta) {
+                if (!pinky) return;
+                const distToPinky = this.camera.position.distanceTo(pinky.mesh.position);
+                
+                let fearAdded = 0;
+                if (pinky.state === 'enraged' && distToPinky < 15) {
+                    fearAdded = delta * 2;
+                } else if ((pinky.state === 'hunt' || pinky.state === 'prowl_active' || pinky.canSeePlayer) && distToPinky < 20) {
+                    fearAdded = delta;
+                }
+
+                if (fearAdded > 0) {
+                    this.fearLevel = Math.min(this.fearLevel + fearAdded, 1);
+                } else {
+                    this.fearLevel = Math.max(this.fearLevel - delta * 0.5, 0);
+                }
+
+                if (this.fearLevel > 0.5) {
+                    fearIndicator.style.display = 'block';
+                    chaseOverlay.style.display = 'block';
+                    chaseOverlay.style.opacity = (this.fearLevel - 0.5) * 1.6;
+                } else {
+                    fearIndicator.style.display = 'none';
+                    chaseOverlay.style.display = 'none';
+                }
+            }
+            
+            updateFlashlight(delta) {
+                if (gameState !== 'playing') {
+                    this.flashlight.intensity = 0;
+                    return;
+                }
+
+                let targetIntensity = this.flashlightOn ? 2.5 : 0.0; 
+
+                
+                this.flickerTimer += delta;
+                if (this.flickerTimer >= 20) {
+                    this.flickerTimer = 0; 
+                }
+                
+                
+                if (this.flickerTimer >= 19 && this.flashlightOn) {
+                    const flickerIntensity = Math.sin((this.flickerTimer - 19) * Math.PI * 10) * 0.3; 
+                    targetIntensity = 2.5 - Math.max(0, flickerIntensity);
+                }
+
+                if (pinky && (pinky.state === 'enraged' || pinky.state === 'prowl_active') &&
+                    this.camera.position.distanceTo(pinky.mesh.position) < 10) {
+                    this.flashlightFlicker += delta * 10;
+                    targetIntensity = (0.5 + Math.sin(this.flashlightFlicker) * 0.5) * (this.flashlightOn ? 2.5 : 0.0);
+                }
+                
+                this.flashlight.intensity += (targetIntensity - this.flashlight.intensity) * 0.2; 
+            }
+
+            pickupItem(item) {
+                if (this.inventory[item.userData.itemType]) return;
+                
+                this.inventory[item.userData.itemType] = true;
+                item.visible = false;
+                item.userData.isInteractable = false;
+                
+                if (sounds.pickup) sounds.pickup.triggerAttackRelease("C5", "8n");
+                
+                document.getElementById(`inv-${item.userData.itemType}`).classList.add('filled');
+
+                
+                const itemMessages = {
+                    key: "You found a RUSTED KEY. You'll need this to unlock the front door... and the padlock securing the chain.",
+                    crowbar: "A CROWBAR. This could break the chain on the door, or smash through weak spots...",
+                    hammer: "A HAMMER. The old drain cover looks weak. This could break through it.",
+                    pole: "A JANITOR POLE. You could use this to reach that high window...",
+                    note: "A CRUMPLED NOTE: 'The bathroom is hungry. Don't look in the mirrors too long. The drain leads out. - Someone who escaped'"
+                };
+                
+                if (itemMessages[item.userData.itemType]) {
+                    showMessageBox(itemMessages[item.userData.itemType]);
+                }
+
+                
+                if (pinky && (pinky.state === 'ambient' || pinky.state === 'glimpse' || pinky.state === 'prowl_timer')) {
+                    pinky.reduceProwlTimer(30); 
+                    setTimeout(() => showMessageBox("You feel... an unseen presence get closer. You must hide or escape."), 1000);
+                }
+            }
+        }
+        
+        
+        let levelObjects = [];
+        const collidables = [];
+        const interactables = [];
+        const hidingSpots = [];
+        const mirrorPortals = [];
+        const mirrorTraps = []; 
+
+        class PinkyAI {
+            constructor() {
+                this.mesh = new THREE.Group();
+                this.mesh.position.set(0, 0, -20);
+                
+                const torsoGeo = new THREE.CylinderGeometry(0.3, 0.5, 1.5, 8);
+                const dressMat = new THREE.MeshStandardMaterial({ 
+                    color: 0x9d5c6c, emissive: 0x33000a, roughness: 0.8 
+                });
+                const torso = new THREE.Mesh(torsoGeo, dressMat);
+                torso.position.y = 0.75;
+                this.mesh.add(torso);
+                
+                const headGeo = new THREE.SphereGeometry(0.4, 8, 8);
+                const head = new THREE.Mesh(headGeo, dressMat);
+                head.position.y = 1.8;
+                this.mesh.add(head);
+
+                const armGeo = new THREE.CylinderGeometry(0.1, 0.1, 1.2, 6);
+                const armMat = new THREE.MeshStandardMaterial({ 
+                    color: 0x9d5c6c, emissive: 0x33000a, roughness: 0.8 
+                });
+                const leftArm = new THREE.Mesh(armGeo, armMat);
+                leftArm.position.set(-0.6, 1.2, 0);
+                leftArm.rotation.z = Math.PI / 6;
+                this.mesh.add(leftArm);
+                
+                const rightArm = new THREE.Mesh(armGeo, armMat);
+                rightArm.position.set(0.6, 1.2, 0);
+                rightArm.rotation.z = -Math.PI / 6;
+                this.mesh.add(rightArm);
+                
+                const eyeGeo = new THREE.SphereGeometry(0.05, 8, 8);
+                const eyeMat = new THREE.MeshStandardMaterial({ 
+                    color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 3
+                });
+                this.leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+                this.leftEye.position.set(-0.1, 1.9, 0.35);
+                this.mesh.add(this.leftEye);
+                
+                this.rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+                this.rightEye.position.set(0.1, 1.9, 0.35);
+                this.mesh.add(this.rightEye);
+
+                scene.add(this.mesh);
+                levelObjects.push(this.mesh);
+                this.mesh.visible = false;
+
+                this.collider = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.5, 0.5, 2.2, 8),
+                    new THREE.MeshBasicMaterial({ visible: false })
+                );
+                this.collider.position.y = 1.1;
+                this.mesh.add(this.collider);
+
+                this.isPeeking = false;
+                this._peekTimeout = null;
+
+                this.state = 'ambient';
+                this.speed = 3.0;
+                
+                this.patrolWaypoints = [
+                    new THREE.Vector3(0, 0, 0), new THREE.Vector3(8, 0, 8), new THREE.Vector3(-8, 0, 8),
+                    new THREE.Vector3(15, 0, 5), new THREE.Vector3(20, 0, 5), new THREE.Vector3(20, 0, -15),
+                    new THREE.Vector3(15, 0, -10), new THREE.Vector3(0, 0, -15), new THREE.Vector3(8, 0, -20),
+                    new THREE.Vector3(-8, 0, -20), new THREE.Vector3(-15, 0, 0), new THREE.Vector3(-15, 0, -15),
+                    new THREE.Vector3(-18, 0, -15), new THREE.Vector3(-18, 0, 0),
+                    new THREE.Vector3(30, 0, 0), new THREE.Vector3(30, 0, 30), new THREE.Vector3(0, 0, 30),
+                    new THREE.Vector3(-30, 0, 30), new THREE.Vector3(-30, 0, 0), new THREE.Vector3(-30, 0, -30),
+                    new THREE.Vector3(0, 0, -30), new THREE.Vector3(30, 0, -30),
+                ];
+                
+                this.currentWaypoint = 0;
+                this.targetPosition = new THREE.Vector3();
+                this.lastSeenPosition = new THREE.Vector3();
+                this.stateTimer = 30; 
+                this.glimpseCount = 0;
+                this.canSeePlayer = false;
+                this.portalCooldown = 0;
+                this.fearLevel = 0; 
+                
+                this.raycaster = new THREE.Raycaster();
+                
+                
+                if (sounds.hiss) {
+                    sounds.hiss.triggerAttack();
+                    sounds.hiss.volume.value = -Infinity;
+                } else {
+                    setTimeout(() => {
+                        if (sounds.hiss) {
+                            sounds.hiss.triggerAttack();
+                            sounds.hiss.volume.value = -Infinity;
+                        }
+                    }, 500); 
+                }
+            }
+
+            setState(newState) {
+                if (this.state === newState) return;
+                console.log(`Pinky state changed: ${this.state} -> ${newState}`);
+                this.state = newState;
+                this.stateTimer = 0;
+                if (!sounds.hiss) return;
+
+                switch(newState) {
+                    case 'ambient':
+                        this.speed = 0;
+                        this.mesh.visible = false;
+                        sounds.hiss.volume.linearRampTo(-Infinity, 1.0);
+                        this.stateTimer = 20; 
+                        break;
+                    case 'glimpse':
+                        this.speed = 0;
+                        this.mesh.visible = false;
+                        sounds.hiss.volume.linearRampTo(-Infinity, 1.0);
+                        this.stateTimer = 15;
+                        break;
+                    case 'prowl_timer':
+                        this.speed = 0;
+                        this.mesh.visible = false;
+                        sounds.hiss.volume.linearRampTo(-Infinity, 1.0);
+                        
+                        this.stateTimer = 20;
+                        break;
+                    case 'prowl_active':
+                        this.speed = 3.0;
+                        this.mesh.visible = true;
+                        this.spawnNearPlayer();
+                        sounds.hiss.volume.linearRampTo(-12, 0.5);
+                        this.targetPosition.copy(this.patrolWaypoints[this.currentWaypoint]);
+                        
+                        this.stateTimer = 20;
+                        break;
+                    case 'hunt': 
+                        this.speed = 4.0;
+                        this.mesh.visible = true;
+                        sounds.hiss.volume.linearRampTo(-10, 0.5);
+                        this.stateTimer = 10;
+                        break;
+                    case 'enraged':
+                        this.speed = 0;
+                        this.mesh.visible = false;
+                        sounds.hiss.volume.linearRampTo(-5, 0.2);
+                        if(sounds.jumpscare) sounds.jumpscare.triggerAttackRelease(0.2);
+                        this.stateTimer = 2;
+                        break;
+                }
+            }
+            
+            reduceProwlTimer(seconds) {
+                if (this.state === 'prowl_timer') {
+                    this.stateTimer = Math.max(5, this.stateTimer - seconds);
+                }
+                this.setState('enraged');
+            }
+
+            update(delta) {
+                this.stateTimer -= delta;
+
+                if (this.state === 'ambient') {
+                    if (Math.random() < 0.005) {
+                        if(sounds.squeak) sounds.squeak.triggerAttackRelease("A1", "0.2n");
+                    }
+                    if (this.stateTimer <= 0) this.setState('glimpse');
+                    return;
+                }
+                
+                if (this.state === 'glimpse') {
+                    if (this.stateTimer <= 0) {
+                        this.triggerGlimpse();
+                        this.glimpseCount++;
+                        this.stateTimer = 8 + Math.random() * 5; 
+                    }
+                    if (this.glimpseCount >= 2) { 
+                        this.setState('prowl_timer');
+                    }
+                    return;
+                }
+                
+                if (this.state === 'prowl_timer') {
+                    if (this.stateTimer <= 0) {
+                        this.setState('prowl_active');
+                    }
+                    return;
+                }
+                
+                if(this.state === 'enraged') {
+                    if (this.stateTimer <= 0) this.setState('prowl_timer');
+                    return;
+                }
+                
+                if(this.state === 'prowl_active') {
+                    if (this.stateTimer <= 0) {
+                        this.despawn();
+                        this.setState('prowl_timer');
+                        return;
+                    }
+                    
+                    this.portalCooldown -= delta;
+                    this.checkSight();
+
+                    if (this.canSeePlayer) {
+                        this.targetPosition.copy(player.camera.position);
+                        this.speed = 4.5;
+                    } else {
+                        this.speed = 3.0;
+                        if (this.mesh.position.distanceTo(this.targetPosition) < 2.0) {
+                            this.currentWaypoint = (this.currentWaypoint + 1) % this.patrolWaypoints.length;
+                            this.targetPosition.copy(this.patrolWaypoints[this.currentWaypoint]);
+                        }
+                    }
+                    
+                    if (Math.random() < 0.01 && this.portalCooldown <= 0) {
+                        this.mirrorPort();
+                    }
+                    
+                    if (this.targetPosition) {
+                        const direction = this.targetPosition.clone().sub(this.mesh.position).normalize();
+                        const moveStep = direction.multiplyScalar(this.speed * delta);
+                        
+                        this.collider.position.copy(this.mesh.position);
+                        this.collider.position.y = 1.1;
+                        
+                        this.mesh.position.x += moveStep.x;
+                        this.collider.position.x = this.mesh.position.x;
+                        if (this.checkCollisions(collidables)) {
+                            this.mesh.position.x -= moveStep.x;
+                            this.currentWaypoint = (this.currentWaypoint + 1) % this.patrolWaypoints.length;
+                            this.targetPosition.copy(this.patrolWaypoints[this.currentWaypoint]);
+                        }
+                        
+                        this.mesh.position.z += moveStep.z;
+                        this.collider.position.z = this.mesh.position.z;
+                        if (this.checkCollisions(collidables)) {
+                            this.mesh.position.z -= moveStep.z;
+                            this.currentWaypoint = (this.currentWaypoint + 1) % this.patrolWaypoints.length;
+                            this.targetPosition.copy(this.patrolWaypoints[this.currentWaypoint]);
+                        }
+                        this.mesh.lookAt(this.targetPosition.x, this.mesh.position.y, this.targetPosition.z);
+                    }
+                    
+                    const glowIntensity = 2 + Math.sin(Date.now() * 0.005) * 0.5;
+                    this.leftEye.material.emissiveIntensity = glowIntensity;
+                    this.rightEye.material.emissiveIntensity = glowIntensity;
+                    
+                    if (this.mesh.position.distanceTo(player.camera.position) < 2.5) {
+                        
+                        if (player.isHiding && player.keys.holdBreath && player.breath > 0) {
+                            
+                            this.targetPosition.copy(this.patrolWaypoints[Math.floor(Math.random() * this.patrolWaypoints.length)]);
+                            this.currentWaypoint = this.patrolWaypoints.indexOf(this.targetPosition);
+                        } else {
+                            
+                            screenShake(3, 500);
+                            redFlashEffect(300, 1);
+                            gameOver("caught");
+                        }
+                    }
+                }
+            }
+
+            spawnNearPlayer() {
+                let spawnPoint = this.patrolWaypoints[0];
+                let maxDist = 0;
+                for (const point of this.patrolWaypoints) {
+                    const dist = point.distanceTo(player.camera.position);
+                    
+                    if (dist > maxDist && dist > 20) { 
+                        maxDist = dist;
+                        spawnPoint = point;
+                    }
+                }
+                this.mesh.position.copy(spawnPoint);
+                this.currentWaypoint = this.patrolWaypoints.indexOf(spawnPoint);
+            }
+
+            
+            peekFromMirror(mirrorOrObj) {
+                try {
+                    
+                    let spawn = null;
+                    if (mirrorOrObj && mirrorOrObj.userData && mirrorOrObj.userData.spawnPoint) {
+                        spawn = mirrorOrObj.userData.spawnPoint.clone();
+                    } else if (mirrorOrObj && mirrorOrObj.userData && mirrorOrObj.userData.spawnPoint === undefined && mirrorOrObj.userData) {
+                        
+                        spawn = null;
+                    }
+                    
+                    if (!spawn) spawn = (mirrorOrObj && mirrorOrObj.position) ? mirrorOrObj.position.clone() : null;
+                    if (!spawn) spawn = pickCornerSpawnNearPlayer(12);
+                    if (!spawn) return;
+
+                    // Ensure spawn is not inside geometry; try to find a nearby safe spot
+                    try {
+                        const safe = findSafeSpawn(spawn.clone(), collidables, 8, 0.5, 16);
+                        if (safe) spawn = safe;
+                    } catch (e) { /* ignore */ }
+
+                    this.mesh.position.copy(spawn);
+                    this.mesh.visible = true;
+                    this.isPeeking = true;
+                    if (sounds.squeak) sounds.squeak.triggerAttackRelease("C2", "0.3n");
+
+                    
+                    if (this._peekTimeout) clearTimeout(this._peekTimeout);
+
+                    
+                    this._peekTimeout = setTimeout(() => {
+                        
+                        try { screenShake(1.5, 180); } catch (e) {}
+                        setTimeout(() => {
+                            this.mesh.visible = false;
+                            this.isPeeking = false;
+                            this._peekTimeout = null;
+                        }, 180);
+                    }, PEEK_CONFIG.peekAutoHideMs);
+                } catch(e) { console.warn('peekFromMirror failed', e); }
+            }
+            
+            despawn() {
+                this.mesh.visible = false;
+                if (sounds.hiss) sounds.hiss.volume.linearRampTo(-Infinity, 1.0);
+            }
+
+            triggerGlimpse() {
+                const playerDir = player.camera.getWorldDirection(new THREE.Vector3());
+                let bestWaypoint = null;
+                
+                for (const point of this.patrolWaypoints) {
+                    const dist = point.distanceTo(player.camera.position);
+                    if (dist > 15 && dist < 30) {
+                        const dirToPoint = point.clone().sub(player.camera.position).normalize();
+                        if (playerDir.dot(dirToPoint) > 0.8) {
+                            bestWaypoint = point;
+                            break;
+                        }
+                    }
+                }
+                
+                if (bestWaypoint) {
+                    this.mesh.position.copy(bestWaypoint);
+                    this.mesh.lookAt(player.camera.position.x, this.mesh.position.y, player.camera.position.z);
+                    this.mesh.visible = true;
+                    if(sounds.squeak) sounds.squeak.triggerAttackRelease("G2", "1n");
+                    setTimeout(() => {
+                        this.mesh.visible = false;
+                    }, (2 + Math.random() * 2) * 1000);
+                }
+            }
+
+            checkCollisions(collidables) {
+                const aiBox = new THREE.Box3().setFromObject(this.collider);
+                for (const object of collidables) {
+                    if (object.userData.isInteractable || object.userData.isHidingSpot || object.userData.isMirror) continue;
+                    
+                    const objectBox = new THREE.Box3().setFromObject(object);
+                    if (aiBox.intersectsBox(objectBox)) return true;
+                }
+                return false;
+            }
+
+            checkSight() {
+                if (this.state !== 'prowl_active') {
+                    this.canSeePlayer = false;
+                    return;
+                }
+                if (player.isHiding && player.keys.holdBreath && player.breath > 0) {
+                    this.canSeePlayer = false;
+                    return;
+                }
+                
+                const aiHeadPos = this.mesh.position.clone().add(new THREE.Vector3(0, 1.8, 0));
+                const direction = player.camera.position.clone().sub(aiHeadPos).normalize();
+                this.raycaster.set(aiHeadPos, direction);
+                const intersects = this.raycaster.intersectObjects(collidables);
+                const distToPlayer = player.camera.position.distanceTo(aiHeadPos);
+
+                if (intersects.length > 0 && intersects[0].distance < distToPlayer - 0.5) {
+                    this.canSeePlayer = false;
+                } else if (distToPlayer < 30) {
+                    this.canSeePlayer = true;
+                    this.targetPosition.copy(player.camera.position);
+                } else {
+                    this.canSeePlayer = false;
+                }
+            }
+
+            hearSound(position, radius) {
+                if (this.state !== 'prowl_active') return;
+                
+                const distance = this.mesh.position.distanceTo(position);
+                if (distance < radius) {
+                    this.targetPosition.copy(position);
+                    this.lastSeenPosition.copy(position);
+                }
+            }
+            
+            mirrorPort() {
+                if (mirrorPortals.length === 0) return;
+                this.portalCooldown = 10;
+                const portal = mirrorPortals[Math.floor(Math.random() * mirrorPortals.length)];
+                // Try to port to a nearby safe spawn point instead of blindly using portal spawn
+                let chosen = portal.userData.spawnPoint.clone();
+                try {
+                    const safe = findSafeSpawn(chosen.clone(), collidables, 8, 0.5, 20);
+                    if (safe) chosen = safe;
+                } catch (e) {}
+                this.mesh.position.copy(chosen);
+                
+                this.collider.position.copy(this.mesh.position);
+                this.collider.position.y = 1.1;
+                if (this.checkCollisions(collidables)) {
+                    // fallback to original portal spawn if something is wrong
+                    this.mesh.position.copy(portal.userData.spawnPoint);
+                }
+
+                if(sounds.squeak) sounds.squeak.triggerAttackRelease("C2", "0.5n");
+                this.currentWaypoint = (this.currentWaypoint + 1) % this.patrolWaypoints.length;
+                this.targetPosition.copy(this.patrolWaypoints[this.currentWaypoint]);
+            }
+        }
+        
+        
+        let mainLight, stallLight, cisternLight;
+
+        
+        function summonPinky() {
+            if (!player) return;
+            if (!pinky) {
+                pinky = new PinkyAI();
+                scene.add(pinky.mesh);
+            }
+
+            
+            const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(player.camera.quaternion).setY(0).normalize();
+            const spawnPos = player.camera.position.clone().add(forward.multiplyScalar(3));
+            
+            pinky.mesh.position.set(spawnPos.x, 0, spawnPos.z);
+            pinky.mesh.lookAt(player.camera.position.x, 0.8, player.camera.position.z);
+
+            
+            if (typeof pinky.setState === 'function') {
+                pinky.setState('prowl_active');
+            } else {
+                pinky.state = 'prowl_active';
+            }
+            pinky.canSeePlayer = true;
+
+            
+            fearIndicator.style.display = 'block';
+            chaseOverlay.style.display = 'block';
+            chaseOverlay.style.opacity = '1';
+
+            
+            try {
+                if (sounds && sounds.mirrorSlam && typeof sounds.mirrorSlam.triggerAttackRelease === 'function') {
+                    sounds.mirrorSlam.triggerAttackRelease(0.2);
+                }
+            } catch (e) {  }
+            console.log('Pinky summoned in front of player');
+        }
+        
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000); 
+            scene.fog = new THREE.Fog(0x000000, 1, 10); 
+
+            player = new Player();
+            scene.add(player.camera);
+            scene.add(player.collider);
+            player.camera.rotation.y = Math.PI;
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
+            gameContainer.appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.1);
+            scene.add(ambientLight);
+            levelObjects.push(ambientLight);
+            
+            mainLight = new THREE.PointLight(0xffffff, 0.8, 15);
+            mainLight.position.set(0, 4, 0);
+            scene.add(mainLight);
+            levelObjects.push(mainLight);
+
+            stallLight = new THREE.PointLight(0x880000, 0, 30);
+            stallLight.position.set(-25, 6, -10);
+            scene.add(stallLight);
+            levelObjects.push(stallLight);
+
+            cisternLight = new THREE.PointLight(0x000088, 0, 30);
+            cisternLight.position.set(25, 6, -10);
+            scene.add(cisternLight);
+            levelObjects.push(cisternLight);
+            
+            const flickerUpdate = () => {
+                if (gameState === 'playing' || gameState === 'intro') {
+                    if (mainLight.intensity > 0) {
+                        mainLight.intensity = 0.5 + Math.random() * 0.2;
+                    }
+                    if (stallLight.intensity > 0) {
+                        stallLight.intensity = 0.4 + Math.random() * 0.3;
+                    }
+                    if (cisternLight.intensity > 0) {
+                        cisternLight.intensity = 0.4 + Math.random() * 0.3;
+                    }
+                }
+            };
+            setInterval(flickerUpdate, 120); 
+            
+            buildNormalBathroom();
+            
+            
+            player.initControls();
+            window.addEventListener('resize', onWindowResize);
+            document.addEventListener('pointerlockchange', onPointerLockChange);
+            gameContainer.addEventListener('click', () => {
+                if (gameState === 'playing') {
+                    document.body.requestPointerLock();
+                } else if (gameState === 'intro') {
+                    handleIntroInput();
+                }
+            });
+
+            
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'KeyP') {
+                    try { summonPinky(); } catch (err) { console.error('summonPinky', err); }
+                }
+            });
+            
+            setTimeout(() => {
+                console.log("Loading complete, transitioning to menu");
+                loadingScreen.classList.add('hidden');
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                }, 500);
+                setGameState('menu');
+                console.log("Game state set to:", gameState);
+            }, 1500);
+            
+            
+            
+            try {
+                Object.defineProperty(window, '__dbg', {
+                    configurable: true,
+                    enumerable: true,
+                    get() {
+                        return { player: (typeof player !== 'undefined' ? player : null), soundsInitialized: (typeof soundsInitialized !== 'undefined' ? soundsInitialized : false), sounds: (typeof sounds !== 'undefined' ? sounds : null), pinky: (typeof pinky !== 'undefined' ? pinky : null), gameState: (typeof gameState !== 'undefined' ? gameState : null), isPointerLocked };
+                    }
+                });
+            } catch (e) {  }
+
+            animate();
+        }
+        
+        
+        const introScript = [
+            { speaker: "Chantelle", line: "Come on! It'll be quick. I'm tired of everyone acting so scared of a story." },
+            { speaker: "Sizwe", line: "This is so lame, Chantelle. You actually believe this crap? It's a fairytale." },
+            { speaker: "Lebo", line: "My auntie said... she said her friend's sister... they saw it. I... I think we should go home. It's late." },
+            { speaker: "Chantelle", line: "Your auntie's friend's sister is a liar. Thabo, you're not scared, are you?" },
+            { speaker: "Chantelle", line: "(From outside) Okay, we're right here. Go on. Shout at the mirror. We'll listen." },
+            { action: "doorClick" },
+            { speaker: "Sizwe", line: "See? Nothing. Just a gross bathroom. Let's go." },
+            { speaker: "Lebo", line: "Just do it... let's just do it and get out of here." },
+            { action: "chant", number: 1 },
+            { action: "chant", number: 2 },
+            { action: "lightsFlicker" },
+            { speaker: "Sizwe", line: "Probably just the old wiring. Scared, Lebo?" },
+            { action: "chant", number: 3 },
+            { action: "stallSlam" },
+            { speaker: "Lebo", line: "What was that?!" },
+            { speaker: "Sizwe", line: "It's just the wind. The window's open." },
+            { action: "chant", number: 4 },
+            { speaker: "Lebo", line: "Did you see that?! The mirror... it..." },
+            { speaker: "Sizwe", line: "See what? Stop it." },
+            { action: "chant", number: 5 },
+            { speaker: "Lebo", line: "(Whispering) Sizwe?... Where's Sizwe?" },
+            { action: "chant", number: 6 },
+            { speaker: "Lebo", line: "(Crying) Thabo, I want to go! Open the door! IT'S LOCKED!" },
+            { action: "chant", number: 7 },
+            { speaker: "Chantelle", line: "(Muffled Banging) Hey! The door's stuck! This isn't funny, guys! Let me out!" },
+            { action: "chant", number: 8 },
+            { speaker: "THABO", line: "(...Lebo's gone. His glasses are on the floor. Something pink... in the mirror...)" },
+            { action: "chant", number: 9 },
+            { speaker: "Chantelle", line: "(Muffled Scream, then silence)" },
+            { action: "chant", number: 10 },
+            { action: "triggerShift" }
+        ];
+        let introStep = 0;
+        let chantInputPending = false;
+        
+        function buildNormalBathroom() {
+            clearLevel();
+            const floor = createWall(8, 0.1, 8, new THREE.Vector3(0, 0, 0), 0x333333);
+            createWall(8, 4, 0.2, new THREE.Vector3(0, 2, 4), 0x555544);
+            createWall(8, 4, 0.2, new THREE.Vector3(0, 2, -4), 0x555544);
+            createWall(0.2, 4, 8, new THREE.Vector3(4, 2, 0), 0x555544);
+            createWall(0.2, 4, 8, new THREE.Vector3(-4, 2, 0), 0x555544);
+
+            const mirrorGeo = new THREE.PlaneGeometry(3, 2);
+            const mirrorMat = new THREE.MeshStandardMaterial({ 
+                color: 0xbbccdd, roughness: 0.1, metalness: 0.9 
+            });
+            const mirror = new THREE.Mesh(mirrorGeo, mirrorMat);
+            mirror.position.set(0, 2, -3.9);
+            mirror.userData = { isMirror: true };
+            scene.add(mirror);
+            levelObjects.push(mirror);
+        }
+
+        function startIntro() {
+            if (!scene) init();
+            
+            buildNormalBathroom();
+            mainLight.intensity = 0.8;
+            stallLight.intensity = 0;
+            cisternLight.intensity = 0;
+            player.flashlight.intensity = 0;
+            player.camera.position.set(0, player.height, 2);
+            player.camera.rotation.y = Math.PI;
+            player.controlsLocked = true;
+            
+            introStep = 0;
+            setGameState('intro');
+            showIntroLine();
+        }
+        
+        window.advanceIntro = () => {
+            
+            if (gameState !== 'intro') return;
+            
+            
+            if (chantInputPending) {
+                chantInputPending = false;
+                hidePrompt();
+                introStep++;
+                showIntroLine();
+                return;
+            }
+            
+            
+            const step = introScript[introStep];
+            if (step && step.action === 'chant') return; 
+            introStep++;
+            showIntroLine();
+        }
+        
+        function handleIntroInput() {
+             
+             advanceIntro();
+        }
+        
+        function showIntroLine() {
+            if (introStep >= introScript.length) return;
+            
+            const step = introScript[introStep];
+            
+            if (step.line) {
+                showDialogue(step.speaker, step.line);
+                promptElement.style.display = 'none';
+            }
+            
+            if (step.action) {
+                hideDialogue();
+                
+                switch(step.action) {
+                    case "doorClick":
+                        setTimeout(advanceIntro, 500);
+                        break;
+                    case "chant":
+                        setPrompt(`[E], [Click], or [Enter] to Chant: "Pinky Pinky ${step.number}"`);
+                        chantInputPending = true;
+                        break;
+                    case "lightsFlicker":
+                        mainLight.intensity = 0.1;
+                        player.flashlightOn = true; 
+                        if(sounds.squeak) sounds.squeak.triggerAttackRelease("G5", "0.1n");
+                        setTimeout(() => { mainLight.intensity = 0.8; }, 200);
+                        setTimeout(() => { mainLight.intensity = 0.1; }, 400);
+                        setTimeout(() => { mainLight.intensity = 0.8; }, 600);
+                        setTimeout(advanceIntro, 700);
+                        break;
+                    case "stallSlam":
+                        if(sounds.doorSlam) sounds.doorSlam.triggerAttackRelease(0.3);
+                        setTimeout(advanceIntro, 500);
+                        break;
+                    case "triggerShift":
+                        triggerTheShift();
+                        break;
+                }
+            }
+        }
+
+        
+        
+        
+        function showCinematicBars() {
+            const cinematicBars = document.getElementById('cinematic-bars');
+            cinematicBars.style.display = 'block';
+        }
+
+        
+        function hideCinematicBars() {
+            const cinematicBars = document.getElementById('cinematic-bars');
+            cinematicBars.style.display = 'none';
+        }
+
+        
+        function fadeToBlack(duration = 1500) {
+            return new Promise(resolve => {
+                fadeOverlay.classList.add('show');
+                setTimeout(resolve, duration);
+            });
+        }
+
+        
+        function fadeFromBlack(duration = 1500) {
+            return new Promise(resolve => {
+                fadeOverlay.classList.remove('show');
+                setTimeout(resolve, duration);
+            });
+        }
+
+        
+        function glitchEffect(duration = 500, intensity = 1) {
+            const originalFilter = hud.style.filter;
+            let elapsed = 0;
+            const startTime = Date.now();
+            
+            function applyGlitch() {
+                elapsed = Date.now() - startTime;
+                if (elapsed > duration) {
+                    hud.style.filter = originalFilter;
+                    return;
+                }
+                
+                const glitchAmount = Math.random() * intensity;
+                hud.style.filter = `
+                    brightness(${0.8 + glitchAmount}) 
+                    contrast(${1.2 - glitchAmount})
+                    hue-rotate(${Math.random() * 10 - 5}deg)
+                `;
+                requestAnimationFrame(applyGlitch);
+            }
+            applyGlitch();
+        }
+
+        
+        function screenShake(intensity = 1, duration = 300) {
+            return new Promise(resolve => {
+                const startTime = Date.now();
+                const originalTransform = hud.style.transform;
+                
+                function shake() {
+                    const elapsed = Date.now() - startTime;
+                    if (elapsed >= duration) {
+                        hud.style.transform = originalTransform;
+                        resolve();
+                        return;
+                    }
+                    
+                    const x = (Math.random() - 0.5) * intensity * 10;
+                    const y = (Math.random() - 0.5) * intensity * 10;
+                    hud.style.transform = `translate(${x}px, ${y}px)`;
+                    requestAnimationFrame(shake);
+                }
+                shake();
+            });
+        }
+
+        
+        function redFlashEffect(duration = 200, intensity = 1) {
+            const originalBg = jumpscareOverlay.style.backgroundColor;
+            const overlayIntensity = 0.6 * intensity;
+            
+            jumpscareOverlay.style.backgroundColor = `rgba(255, 0, 0, ${overlayIntensity})`;
+            jumpscareOverlay.style.display = 'block';
+            
+            setTimeout(() => {
+                jumpscareOverlay.style.backgroundColor = originalBg;
+                jumpscareOverlay.style.display = 'none';
+            }, duration);
+        }
+
+        
+        function slowMotionEffect(duration = 1000, speedMultiplier = 0.3) {
+            const originalDelta = clock.getDelta;
+            let elapsedSlowMo = 0;
+            const startTime = Date.now();
+            
+            function slowMoUpdate() {
+                const now = Date.now();
+                elapsedSlowMo = now - startTime;
+                
+                if (elapsedSlowMo > duration) {
+                    clock.getDelta = originalDelta;
+                    return;
+                }
+            }
+            
+            return new Promise(resolve => {
+                const checkInterval = setInterval(() => {
+                    if (Date.now() - startTime > duration) {
+                        clearInterval(checkInterval);
+                        resolve();
+                    }
+                }, 50);
+            });
+        }
+
+        
+        function distortionEffect(duration = 1000, intensity = 1) {
+            const originalFilter = hud.style.filter;
+            const startTime = Date.now();
+            
+            function distort() {
+                const elapsed = Date.now() - startTime;
+                if (elapsed > duration) {
+                    hud.style.filter = originalFilter;
+                    return;
+                }
+                
+                const progress = elapsed / duration;
+                const blur = Math.sin(progress * Math.PI * 4) * 3 * intensity;
+                const brightness = 0.8 + Math.sin(progress * Math.PI * 2) * 0.2;
+                
+                hud.style.filter = `blur(${Math.abs(blur)}px) brightness(${brightness})`;
+                requestAnimationFrame(distort);
+            }
+            distort();
+        }
+
+        
+        function colorShiftEffect(targetColor = 'red', duration = 1000) {
+            const originalFilter = hud.style.filter;
+            const startTime = Date.now();
+            
+            function shift() {
+                const elapsed = Date.now() - startTime;
+                if (elapsed > duration) {
+                    hud.style.filter = originalFilter;
+                    return;
+                }
+                
+                const progress = Math.min(elapsed / duration, 1);
+                const saturation = Math.max(1 - progress * 0.5, 0.5);
+                const hueRotate = targetColor === 'red' ? -10 * progress : 0;
+                
+                hud.style.filter = `saturate(${saturation}) hue-rotate(${hueRotate}deg)`;
+                requestAnimationFrame(shift);
+            }
+            shift();
+        }
+
+        
+        async function pursuitEffects(duration = 5000) {
+            const phaseDuration = duration / 4;
+            
+            
+            distortionEffect(phaseDuration, 0.5);
+            await new Promise(r => setTimeout(r, phaseDuration));
+            
+            
+            screenShake(2, phaseDuration);
+            await new Promise(r => setTimeout(r, phaseDuration));
+            
+            
+            colorShiftEffect('red', phaseDuration);
+            glitchEffect(phaseDuration, 2);
+            await new Promise(r => setTimeout(r, phaseDuration));
+            
+            
+            await screenShake(3, phaseDuration / 2);
+            redFlashEffect(100, 2);
+        }
+
+        
+        async function jumpscareSequence(pinkyDistance = 0) {
+            try {
+                
+                if (sounds.jumpscare) {
+                    sounds.jumpscare.triggerAttackRelease(0.5);
+                }
+                
+                
+                await screenShake(4, 400);
+                
+                
+                for (let i = 0; i < 3; i++) {
+                    redFlashEffect(100, 1.5);
+                    await new Promise(r => setTimeout(r, 150));
+                }
+                
+                
+                glitchEffect(300, 3);
+            } catch(e) {
+                console.error("Jumpscare error:", e);
+            }
+        }
+
+        
+        function mirrorPortalEffect() {
+            showCinematicBars();
+            glitchEffect(300, 1);
+            
+            setTimeout(() => {
+                hideCinematicBars();
+            }, 300);
+        }
+
+        
+        function realityWarpEffect(intensity = 0.5) {
+            const blur = Math.random() * intensity * 3;
+            const brightness = 0.85 + Math.random() * 0.15;
+            hud.style.filter = `blur(${blur}px) brightness(${brightness})`;
+        }
+
+        
+        function breathFogEffect() {
+            const fog = document.createElement('div');
+            fog.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                width: 200px;
+                height: 150px;
+                background: radial-gradient(ellipse, rgba(200,200,200,0.5), transparent);
+                transform: translate(-50%, -50%);
+                pointer-events: none;
+                z-index: 15;
+                animation: breathFog 0.8s ease-out forwards;
+            `;
+            hud.appendChild(fog);
+            
+            setTimeout(() => fog.remove(), 800);
+        }
+
+        
+        function textRevealEffect(element, duration = 1000) {
+            element.style.animation = `textReveal ${duration}ms ease-out`;
+            setTimeout(() => {
+                element.style.animation = '';
+            }, duration);
+        }
+
+        async function triggerTheShift() {
+            console.log("TRIGGERING SHIFT");
+            player.controlsLocked = true;
+            hidePrompt();
+            
+            
+            showCinematicBars();
+            await fadeToBlack(2000);
+            
+            if (sounds.worldGroan) sounds.worldGroan.triggerAttackRelease(3.0);
+            
+            clearLevel();
+            
+            scene.fog = new THREE.Fog(0x000000, 5, 25);
+            mainLight.position.set(0, 8, -10); 
+            mainLight.color = new THREE.Color(0xffaa88);
+            mainLight.intensity = 0.6;
+            mainLight.distance = 40;
+            mainLight.castShadow = true;
+            
+            stallLight.intensity = 0.7;
+            cisternLight.intensity = 0.7;
+            
+            buildLabyrinth();
+            
+            pinky = new PinkyAI();
+            
+            startGame();
+            
+            await fadeFromBlack(1500);
+            hideCinematicBars();
+            
+            
+            setGameState('playing');
+            
+            try { if (!document.pointerLockElement) document.body.requestPointerLock(); } catch(e) {  }
+            player.controlsLocked = false;
+            player.keys = { forward: false, backward: false, left: false, right: false, run: false, crouch: false, interact: false, flashlight: false, holdBreath: false };
+            player.flashlightOn = true;
+            console.log('triggerTheShift: gameState=', gameState, 'controlsLocked=', player.controlsLocked);
+            
+            try {
+                const spawnColliding = player.checkCollisions(collidables);
+                console.log('SPAWN DEBUG: camera.pos=', player.camera.position.clone(), 'colliding=', spawnColliding);
+
+                if (spawnColliding) {
+                    
+                    const safe = findSafeSpawn(player.camera.position.clone(), collidables, 12, 0.5, 20);
+                    if (safe) {
+                        player.camera.position.copy(safe);
+                        player.collider.position.copy(safe);
+                        player.collider.position.y -= (player.height - player.height) / 2;
+                        console.log('SAFE TELEPORT: moved player to', safe.clone());
+                        try { showMessageBox("You were moved to a nearby safe spot to prevent spawning inside geometry."); } catch(e) {}
+                    } else {
+                        console.warn('SAFE TELEPORT: no safe spawn found; player remains at original spawn');
+                    }
+                }
+            } catch (e) { console.warn('SPAWN DEBUG failed', e); }
+            
+            
+            showDialogue("THABO (YOU)", "The bathroom... it changed. It's huge. Where are they? ...I have to get out.", 5000);
+            
+            
+            setTimeout(() => {
+                showMessageBox("FIND THE EXITS:\n\n🚪 DOOR - Needs: Rusted Key + Crowbar (to unlock)\n🪟 WINDOW - Needs: Janitor Pole (to reach)\n💧 SEWER - Needs: Hammer (to break the grate)\n\nFind items scattered in the maze. HIDE in stalls or lockers when Pinky gets close. Don't stare at mirrors for too long.\n\nThere is no escape. Only delays...");
+            }, 8000);
+        }
+        
+        function clearLevel() {
+            levelObjects.forEach(obj => scene.remove(obj));
+            levelObjects = [];
+            collidables.length = 0;
+            interactables.length = 0;
+            hidingSpots.length = 0;
+            mirrorPortals.length = 0;
+            mirrorTraps.length = 0;
+            existingItems.length = 0;
+        }
+
+        
+        function buildLabyrinth() {
+            clearLevel();
+            
+            
+            const floorGeometry = new THREE.PlaneGeometry(100, 100);
+            const floorMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x051005,
+                roughness: 0.2, 
+                metalness: 0.8  
+            });
+            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.y = 0.05;
+            floor.receiveShadow = true;
+            scene.add(floor);
+            levelObjects.push(floor);
+            
+            const wallColor = 0x2a3a2a; 
+            const wallHeight = 8;
+            
+            
+            
+            createWall(20, wallHeight, 1, new THREE.Vector3(0, 4, 10), wallColor); 
+            
+            createStall(new THREE.Vector3(2, 1.5, 6), wallColor);
+            createStall(new THREE.Vector3(-2, 1.5, 6), wallColor);
+            createStall(new THREE.Vector3(4, 1.5, 5), wallColor);
+            createStall(new THREE.Vector3(-4, 1.5, 5), wallColor);
+            
+            
+            
+            const exitPositions = [
+                { pos: new THREE.Vector3(15, 2, -8), type: 'door' },
+                { pos: new THREE.Vector3(-15, 6, 25), type: 'window' },
+                { pos: new THREE.Vector3(12, 0.06, 18), type: 'sewer', rotate: true }
+            ];
+            
+            
+            exitPositions.sort(() => Math.random() - 0.5);
+            
+            
+            const doorGeo = new THREE.BoxGeometry(2, 4, 0.2);
+            const doorMat = new THREE.MeshStandardMaterial({ color: 0x5c3a21 });
+            const door = new THREE.Mesh(doorGeo, doorMat);
+            const doorPos = exitPositions.find(e => e.type === 'door').pos;
+            door.position.copy(doorPos);
+            door.userData = { isInteractable: true, type: 'door', isLocked: true, requires: ['key', 'crowbar'], keyUnlocked: false, crowbarUsed: false };
+            scene.add(door); collidables.push(door); interactables.push(door); levelObjects.push(door);
+            
+            const lockGeo = new THREE.BoxGeometry(0.2, 0.3, 0.1);
+            const lockMat = new THREE.MeshStandardMaterial({ color: 0x888888 });
+            const padlock = new THREE.Mesh(lockGeo, lockMat);
+            padlock.position.copy(doorPos).add(new THREE.Vector3(0.8, 2, 0.1));
+            padlock.userData = { isPadlock: true };
+            scene.add(padlock); levelObjects.push(padlock);
+
+            const chainGeo = new THREE.TorusGeometry(0.2, 0.03, 8, 16);
+            const chainMat = new THREE.MeshStandardMaterial({ color: 0x555555 });
+            const chain = new THREE.Mesh(chainGeo, chainMat);
+            chain.position.copy(doorPos).add(new THREE.Vector3(-0.8, 2, 0.1));
+            chain.userData = { isChain: true };
+            scene.add(chain); levelObjects.push(chain);
+            
+            
+            const windowGeo = new THREE.PlaneGeometry(1.5, 1);
+            const windowMat = new THREE.MeshStandardMaterial({ color: 0x334455, emissive: 0xfff5cc, emissiveIntensity: 0.6, roughness: 0.2 });
+            const windowMesh = new THREE.Mesh(windowGeo, windowMat);
+            const windowPos = exitPositions.find(e => e.type === 'window').pos;
+            windowMesh.position.copy(windowPos);
+            windowMesh.userData = { isInteractable: true, type: 'window', isLocked: true, requires: ['pole'] };
+            scene.add(windowMesh); interactables.push(windowMesh); levelObjects.push(windowMesh);
+
+            
+            const frameGeo = new THREE.BoxGeometry(1.6, 1.1, 0.05);
+            const frameMat = new THREE.MeshStandardMaterial({ color: 0x887744, emissive: 0x332211, emissiveIntensity: 0.2 });
+            const frame = new THREE.Mesh(frameGeo, frameMat);
+            frame.position.copy(windowPos).add(new THREE.Vector3(0, 0, 0.06));
+            frame.userData = { isDecor: true };
+            scene.add(frame); levelObjects.push(frame);
+
+            // Make the window frame more visible: add a brighter emissive ring
+            try {
+                const ring = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.05, 32), new THREE.MeshStandardMaterial({ color: 0xffcc88, emissive: 0xff6622, emissiveIntensity: 1.6, side: THREE.DoubleSide }));
+                ring.rotation.x = -Math.PI / 2;
+                ring.position.copy(windowPos).add(new THREE.Vector3(0, 0, 0.08));
+                scene.add(ring); levelObjects.push(ring);
+            } catch(e) { console.warn('window marker failed', e); }
+            
+            
+            const sewerGeo = new THREE.PlaneGeometry(1, 1);
+            const sewerMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+            const sewerTile = new THREE.Mesh(sewerGeo, sewerMat);
+            const sewerPos = exitPositions.find(e => e.type === 'sewer').pos;
+            sewerTile.rotation.x = -Math.PI / 2;
+            sewerTile.position.copy(sewerPos);
+            sewerTile.userData = { isInteractable: true, type: 'sewer', isLocked: true, requires: ['hammer'], hitsRemaining: 3 };
+            scene.add(sewerTile); interactables.push(sewerTile); levelObjects.push(sewerTile);
+
+            // Add a visible grate/highlight for the sewer tile so it's discoverable
+            try {
+                const grate = new THREE.Mesh(new THREE.RingGeometry(0.4, 0.6, 32), new THREE.MeshStandardMaterial({ color: 0x444444, emissive: 0x224488, emissiveIntensity: 0.8, side: THREE.DoubleSide }));
+                grate.rotation.x = -Math.PI / 2;
+                grate.position.copy(sewerPos).add(new THREE.Vector3(0, 0.02, 0));
+                scene.add(grate); levelObjects.push(grate);
+            } catch(e) { console.warn('sewer marker failed', e); }
+            
+            
+            const mazeWallColor = 0x1a2a1a;
+            
+            
+            createWall(40, wallHeight, 1, new THREE.Vector3(0, 4, 30), mazeWallColor);
+            createWall(40, wallHeight, 1, new THREE.Vector3(0, 4, -10), mazeWallColor);
+            createWall(1, wallHeight, 40, new THREE.Vector3(20, 4, 10), mazeWallColor);
+            createWall(1, wallHeight, 40, new THREE.Vector3(-20, 4, 10), mazeWallColor);
+            
+            
+            createWall(1, wallHeight, 15, new THREE.Vector3(-8, 4, 25), mazeWallColor);
+            createWall(15, wallHeight, 1, new THREE.Vector3(-14, 4, 18), mazeWallColor);
+            createWall(1, wallHeight, 8, new THREE.Vector3(-14, 4, 14), mazeWallColor);
+            
+            createWall(15, wallHeight, 1, new THREE.Vector3(0, 4, 5), mazeWallColor);
+            createWall(1, wallHeight, 8, new THREE.Vector3(8, 4, 2), mazeWallColor);
+            
+            createWall(15, wallHeight, 1, new THREE.Vector3(12, 4, 20), mazeWallColor);
+            createWall(1, wallHeight, 12, new THREE.Vector3(12, 4, 14), mazeWallColor);
+            createWall(1, wallHeight, 8, new THREE.Vector3(0, 4, -8), mazeWallColor);
+            createWall(15, wallHeight, 1, new THREE.Vector3(8, 4, -5), mazeWallColor);
+            
+            createWall(1, wallHeight, 8, new THREE.Vector3(-12, 4, 0), mazeWallColor);
+            createWall(15, wallHeight, 1, new THREE.Vector3(-8, 4, -5), mazeWallColor);
+            
+            
+            createStall(new THREE.Vector3(-15, 1.5, 22), wallColor);
+            createStall(new THREE.Vector3(-10, 1.5, 8), wallColor);
+            createStall(new THREE.Vector3(5, 1.5, 18), wallColor);
+            createStall(new THREE.Vector3(12, 1.5, -2), wallColor);
+            createStall(new THREE.Vector3(-8, 1.5, -8), wallColor);
+            
+            
+            createLocker(new THREE.Vector3(8, 1.5, -10), wallColor);
+            createLocker(new THREE.Vector3(-12, 1.5, -10), wallColor);
+            createLocker(new THREE.Vector3(16, 1.5, 8), wallColor);
+            createLocker(new THREE.Vector3(-18, 1.5, 25), wallColor);
+
+            
+            createMirror(new THREE.Vector3(-18.9, 2, 15), Math.PI / 2); 
+            createMirror(new THREE.Vector3(18.9, 2, 0), Math.PI / 2);   
+            createMirror(new THREE.Vector3(-8, 2, -8.9), 0);            
+            createMirror(new THREE.Vector3(8, 2, 28.9), 0);             
+            
+            
+            createLethalMirrorTrap(new THREE.Vector3(18, 2, 28.9), 0);   
+            createLethalMirrorTrap(new THREE.Vector3(-18.9, 2, -8), Math.PI / 2);  
+            createLethalMirrorTrap(new THREE.Vector3(12, 2, 20.9), 0);  
+            createLethalMirrorTrap(new THREE.Vector3(-15, 2, 10.9), Math.PI / 2); 
+            
+            
+            createSink(new THREE.Vector3(-5, 0.3, 15));
+            createSink(new THREE.Vector3(8, 0.3, -5));
+            createSink(new THREE.Vector3(12, 0.3, 10));
+            createSink(new THREE.Vector3(-12, 0.3, 5));
+            
+            
+            // Add randomized blood decals across walls
+            try { addBloodDecals(8); } catch(e) { console.warn('addBloodDecals failed', e); }
+            
+            
+            createHighWindow(new THREE.Vector3(-10, 7.5, 39.9));
+            createHighWindow(new THREE.Vector3(10, 7.5, 39.9));
+
+            // Add visible markers above exits so players can locate all three exits
+            try {
+                const addMarker = (pos) => {
+                    const m = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), new THREE.MeshStandardMaterial({ color: 0xffaa66, emissive: 0xff3300, emissiveIntensity: 1.8 }));
+                    m.position.copy(pos).add(new THREE.Vector3(0, 2.2, 0));
+                    scene.add(m); levelObjects.push(m); exitMarkers.push(m);
+                };
+                addMarker(doorPos);
+                addMarker(windowPos);
+                addMarker(sewerPos);
+            } catch (e) { console.warn('exit markers failed', e); }
+
+            placeItems();
+
+            // Spawn two movable crates randomly in the maze for the window escape
+            try { spawnCrates(2); } catch(e) { console.warn('spawnCrates failed', e); }
+        }
+        
+        function createWall(w, h, d, pos, color) {
+            const wallGeo = new THREE.BoxGeometry(w, h, d);
+            const wallMat = new THREE.MeshStandardMaterial({ 
+                color: color,
+                roughness: 0.4,
+                metalness: 0.1
+            });
+            const wall = new THREE.Mesh(wallGeo, wallMat);
+            wall.position.copy(pos);
+            wall.castShadow = true;
+            wall.receiveShadow = true;
+            scene.add(wall);
+            collidables.push(wall);
+            levelObjects.push(wall);
+            return wall;
+        }
+
+        function createStall(pos, color) {
+            const stallDoor = new THREE.Mesh(
+                new THREE.BoxGeometry(0.1, 3, 1.8),
+                new THREE.MeshStandardMaterial({ color: 0x444444 })
+            );
+            stallDoor.position.copy(pos);
+            stallDoor.rotation.y = Math.PI / 2;
+            stallDoor.userData = { isInteractable: true, type: 'stallDoor', isOpen: false, linkedHiding: null };
+            scene.add(stallDoor);
+            collidables.push(stallDoor);
+            levelObjects.push(stallDoor);
+
+            // create an invisible interior area that acts as a hiding spot when the stall is opened
+            try {
+                const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(stallDoor.quaternion);
+                const interiorPos = pos.clone().add(forward.multiplyScalar(0.6));
+                const stallInterior = new THREE.Mesh(new THREE.BoxGeometry(1.6, 2.4, 1.6), new THREE.MeshBasicMaterial({ visible: false }));
+                stallInterior.position.copy(interiorPos);
+                stallInterior.position.y = 1.0;
+                stallInterior.userData = { isHidingSpot: false };
+                scene.add(stallInterior);
+                // interior is added to collidables so the player can stand inside but it's only a hiding spot when open
+                collidables.push(stallInterior);
+                levelObjects.push(stallInterior);
+                stallDoor.userData.linkedHiding = stallInterior;
+
+                // visible toilet for clarity
+                const toiletGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.45, 12);
+                const toiletMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6 });
+                const toilet = new THREE.Mesh(toiletGeo, toiletMat);
+                toilet.position.copy(interiorPos).add(new THREE.Vector3(0.2, 0.225, 0));
+                scene.add(toilet); levelObjects.push(toilet);
+            } catch (e) { console.warn('createStall interior failed', e); }
+        }
+        
+        function createLocker(pos, color) {
+            const locker = new THREE.Mesh(
+                new THREE.BoxGeometry(1.2, 3, 1),
+                new THREE.MeshStandardMaterial({ color: 0x334433 })
+            );
+            locker.position.copy(pos);
+            locker.userData = { isInteractable: true, type: 'locker', isOpen: false };
+            scene.add(locker);
+            collidables.push(locker);
+            levelObjects.push(locker);
+            // interior hiding spot (invisible)
+            try {
+                const interior = new THREE.Mesh(new THREE.BoxGeometry(0.9, 2.2, 0.9), new THREE.MeshBasicMaterial({ visible: false }));
+                interior.position.copy(pos).add(new THREE.Vector3(0, 1.0, 0));
+                interior.userData = { isHidingSpot: true, isLockerInterior: true };
+                scene.add(interior); levelObjects.push(interior); collidables.push(interior);
+                locker.userData._interior = interior;
+            } catch (e) { console.warn('createLocker interior failed', e); }
+        }
+
+        function createMirror(pos, rotY) {
+            const mirrorGeo = new THREE.PlaneGeometry(2, 3);
+            const mirrorMat = new THREE.MeshStandardMaterial({ 
+                color: 0x778899, roughness: 0.1, metalness: 0.9 
+            });
+            const mirror = new THREE.Mesh(mirrorGeo, mirrorMat);
+            mirror.position.copy(pos);
+            mirror.rotation.y = rotY;
+            mirror.userData = { isMirror: true, spawnPoint: pos.clone().add(new THREE.Vector3(Math.sin(rotY), 0, Math.cos(rotY))), _lastPeek: 0 };
+            scene.add(mirror);
+            mirrorPortals.push(mirror);
+            collidables.push(mirror); 
+            levelObjects.push(mirror);
+        }
+
+        function createLethalMirrorTrap(pos, rotY = 0) {
+            
+            const mirrorGeo = new THREE.PlaneGeometry(3, 4);
+            const mirrorMat = new THREE.MeshStandardMaterial({ 
+                color: 0x778899, roughness: 0.1, metalness: 0.9
+            });
+            const mirror = new THREE.Mesh(mirrorGeo, mirrorMat);
+            mirror.position.copy(pos);
+            mirror.rotation.y = rotY;
+            mirror.userData = { isMirror: true, isTrap: true, timer: 0, spawnPoint: pos.clone().add(new THREE.Vector3(Math.sin(rotY), 0, Math.cos(rotY))), _lastPeek: 0 };
+            scene.add(mirror);
+            mirrorTraps.push(mirror);
+            mirrorPortals.push(mirror);
+            collidables.push(mirror);
+            levelObjects.push(mirror);
+        }
+        
+        
+        function createHighWindow(pos) {
+            const windowGeo = new THREE.PlaneGeometry(2, 1);
+            const windowMat = new THREE.MeshStandardMaterial({ color: 0xffeecc, emissive: 0xffffee, emissiveIntensity: 2 });
+            const windowMesh = new THREE.Mesh(windowGeo, windowMat);
+            windowMesh.position.copy(pos);
+            scene.add(windowMesh);
+            levelObjects.push(windowMesh);
+            
+            
+            const rayGeo = new THREE.CylinderGeometry(0.1, 1.5, 8, 8, 1, true);
+            const rayMat = new THREE.MeshBasicMaterial({
+                color: 0xffeecc,
+                transparent: true,
+                opacity: 0.1,
+                side: THREE.DoubleSide,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            const ray = new THREE.Mesh(rayGeo, rayMat);
+            ray.position.copy(pos).add(new THREE.Vector3(0, -4, -0.5));
+            ray.rotation.x = Math.PI / 2.2;
+            scene.add(ray);
+            levelObjects.push(ray);
+        }
+        
+        function createSink(pos) {
+            
+            const basinGeo = new THREE.CylinderGeometry(0.35, 0.3, 0.3, 8);
+            const basinMat = new THREE.MeshStandardMaterial({ 
+                color: 0x888888, 
+                roughness: 0.3, 
+                metalness: 0.8 
+            });
+            const basin = new THREE.Mesh(basinGeo, basinMat);
+            basin.position.copy(pos).add(new THREE.Vector3(0, 0.3, 0));
+            scene.add(basin);
+            levelObjects.push(basin);
+            collidables.push(basin);
+            
+            
+            for (let x = -0.2; x <= 0.2; x += 0.4) {
+                for (let z = -0.2; z <= 0.2; z += 0.4) {
+                    const legGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.5, 4);
+                    const legMat = new THREE.MeshStandardMaterial({ color: 0x555555 });
+                    const leg = new THREE.Mesh(legGeo, legMat);
+                    leg.position.copy(pos).add(new THREE.Vector3(x, -0.1, z));
+                    scene.add(leg);
+                    levelObjects.push(leg);
+                }
+            }
+            
+            
+            const faucetGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.4, 4);
+            const faucetMat = new THREE.MeshStandardMaterial({ color: 0x666666 });
+            const faucet = new THREE.Mesh(faucetGeo, faucetMat);
+            faucet.position.copy(pos).add(new THREE.Vector3(0, 0.5, 0));
+            scene.add(faucet);
+            levelObjects.push(faucet);
+            
+            
+            const dripSound = () => {
+                if (sounds.squeak && Math.random() > 0.3) {
+                    sounds.squeak.triggerAttackRelease("C1", "0.1n");
+                }
+                setTimeout(dripSound, 2000 + Math.random() * 2000);
+            };
+            dripSound(); 
+        }
+        
+        const itemSpawnPoints = [
+            new THREE.Vector3(-19.5, 0.5, 5), new THREE.Vector3(-16, 0.5, -18),
+            new THREE.Vector3(-13, 0.5, -2), new THREE.Vector3(13, 0.5, 8.5),
+            new THREE.Vector3(21.5, 0.5, -19), new THREE.Vector3(18, 0.5, -5),
+            new THREE.Vector3(0, 0.5, -24), new THREE.Vector3(8, 0.5, -14),
+            new THREE.Vector3(-8, 0.5, -14), new THREE.Vector3(8, 0.5, 8),
+            new THREE.Vector3(-8, 0.5, 8), new THREE.Vector3(0, 0.5, -8),
+            new THREE.Vector3(-28, 0.5, -38), new THREE.Vector3(28, 0.5, -38),
+            new THREE.Vector3(28, 0.5, 38), new THREE.Vector3(-28, 0.5, 18)
+        ];
+        
+        let existingItems = [];
+        let itemTypes = ['key', 'crowbar', 'hammer', 'pole', 'note'];
+        
+        function placeItems() {
+            existingItems.forEach(item => {
+                scene.remove(item);
+                const index = interactables.indexOf(item);
+                if (index > -1) interactables.splice(index, 1);
+            });
+            existingItems = [];
+            // Ensure all item types spawn randomly within available itemSpawnPoints.
+            // We'll shuffle a copy of spawn points and then place one of each item onto the first N free points.
+            const shuffled = itemSpawnPoints.slice().sort(() => Math.random() - 0.5);
+            const finalSpawns = [];
+            for (const p of shuffled) {
+                if (finalSpawns.length >= itemTypes.length) break;
+                // test a small box where the item would sit
+                const testBox = new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(p.x, 0.25, p.z), new THREE.Vector3(0.6, 0.6, 0.6));
+                let colliding = false;
+                for (const c of collidables) {
+                    try { if (new THREE.Box3().setFromObject(c).intersectsBox(testBox)) { colliding = true; break; } } catch(e) {}
+                }
+                if (!colliding) finalSpawns.push(p.clone());
+            }
+            // If we couldn't find enough filtered spots, fall back to the original list (but still shuffled)
+            const spawnsToUse = finalSpawns.length >= itemTypes.length ? finalSpawns : shuffled.slice(0, itemTypes.length);
+
+            const itemMeshes = {
+                key: new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.5), new THREE.MeshStandardMaterial({ color: 0xdaa520, emissive: 0x332200, roughness: 0.6 })),
+                crowbar: new THREE.Mesh(new THREE.BoxGeometry(0.1, 1, 0.1), new THREE.MeshStandardMaterial({ color: 0x8b0000, emissive: 0x220000, roughness: 0.7 })),
+                hammer: new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.2, 0.1), new THREE.MeshStandardMaterial({ color: 0x666666, emissive: 0x111111, roughness: 0.8 })),
+                pole: new THREE.Mesh(new THREE.BoxGeometry(0.1, 2.5, 0.1), new THREE.MeshStandardMaterial({ color: 0x999999, emissive: 0x222222, roughness: 0.5 })),
+                note: new THREE.Mesh(new THREE.PlaneGeometry(0.35, 0.25), new THREE.MeshStandardMaterial({ color: 0xeeeddd, emissive: 0x883333, emissiveIntensity: 0.8 }))
+            };
+
+            for (let i = 0; i < itemTypes.length; i++) {
+                const type = itemTypes[i];
+                const item = itemMeshes[type].clone();
+                const pos = spawnsToUse[i % spawnsToUse.length];
+                item.position.copy(pos);
+                if (type === 'note') {
+                    item.rotation.x = -Math.PI / 2;
+                    // lift note slightly and give it a tint so it's visible on floor
+                    item.position.y = 0.15;
+                }
+                if (type === 'crowbar' || type === 'pole') item.rotation.z = Math.PI / 4;
+                item.userData = { isInteractable: true, type: 'item', itemType: type, isVisible: true };
+                item.visible = true;
+                scene.add(item);
+                interactables.push(item);
+                existingItems.push(item);
+                levelObjects.push(item);
+                console.log('placeItems: placed', type, 'at', item.position);
+            }
+        }
+
+        
+        const raycaster = new THREE.Raycaster();
+        let interactionTarget = null;
+        let mirrorJumpscareCooldown = 0;
+        let lethalMirror = null;
+        
+        function animate() {
+            requestAnimationFrame(animate); 
+            if (gameState === 'loading' || gameState === 'menu' || gameState === 'settings') return;
+
+            const delta = clock.getDelta();
+            if (mirrorJumpscareCooldown > 0) mirrorJumpscareCooldown -= delta;
+
+            player.update(delta, collidables);
+            if (pinky && gameState === 'playing') pinky.update(delta);
+            if (gameState === 'playing') checkInteractions(delta);
+
+            // Handle crowbar hold progress (for prying the chain)
+            try {
+                if (crowbarHold.active) {
+                    if (!player.keys.interact) {
+                        // player released early
+                        crowbarHold.active = false;
+                        crowbarHold.targetDoor = null;
+                        crowbarHold.soundPlaying = false;
+                        showMessageBox('You stopped prying the chain.');
+                    } else {
+                        const elapsed = Date.now() - crowbarHold.startTime;
+                        crowbarHold.progress = Math.min(1, elapsed / crowbarHold.duration);
+                        setPrompt(`Prying chain: ${Math.floor(crowbarHold.progress * 100)}%`);
+                        // play scraping sound occasionally while holding
+                        if (sounds.doorSlam && !crowbarHold.soundPlaying) {
+                            try { sounds.doorSlam.triggerAttackRelease(0.2); } catch(e) {}
+                            crowbarHold.soundPlaying = true;
+                        }
+                        // alert Pinky continuously while prying
+                        if (pinky) pinky.hearSound(player.camera.position, 80);
+                        if (elapsed >= crowbarHold.duration) {
+                            // complete
+                            const td = crowbarHold.targetDoor;
+                            if (td && td.userData) {
+                                td.userData.crowbarUsed = true;
+                                td.userData.isLocked = false;
+                                // hide chain and padlock if present
+                                const chainObj = scene.children.find(obj => obj.userData && obj.userData.isChain);
+                                if (chainObj) chainObj.visible = false;
+                                crowbarHold.active = false;
+                                crowbarHold.targetDoor = null;
+                                crowbarHold.soundPlaying = false;
+                                showMessageBox('You forced the chain off! The door is free — run!');
+                                if (pinky) { pinky.setState('hunt'); pinky.stateTimer = 20; }
+                            }
+                        }
+                    }
+                }
+            } catch(e) { console.warn('crowbarHold update failed', e); }
+            
+            existingItems.forEach(item => {
+                if (item.userData.itemType && player.inventory[item.userData.itemType]) {
+                    item.visible = false;
+                    item.userData.isInteractable = false;
+                }
+            });
+            renderer.render(scene, player.camera);
+        }
+        
+        function checkInteractions(delta) {
+            raycaster.setFromCamera({ x: 0, y: 0 }, player.camera);
+            const intersects = raycaster.intersectObjects(scene.children);
+            interactionTarget = null;
+            let lookingAtMirror = false;
+            lethalMirror = null;
+            let sawPinkyThisFrame = false;
+            
+            for (const intersect of intersects) {
+                
+                if (intersect.distance < 3 && intersect.object.userData.isInteractable) {
+                    interactionTarget = intersect.object;
+                }
+                
+                if (intersect.distance < 10 && intersect.object.userData.isMirror) {
+                    lookingAtMirror = true;
+                    if (intersect.object.userData.isTrap) {
+                        lethalMirror = intersect.object;
+                    }
+                }
+                
+                if (pinky && pinky.mesh && pinky.mesh.visible) {
+                    let obj = intersect.object;
+                    while (obj) {
+                        if (obj === pinky.mesh) { sawPinkyThisFrame = true; break; }
+                        obj = obj.parent;
+                    }
+                }
+                
+                if (interactionTarget && lookingAtMirror) break;
+            }
+
+            
+            try {
+                const flashlightRange = (player && player.flashlight && player.flashlight.distance) ? player.flashlight.distance : 10; 
+                for (const trap of mirrorTraps) {
+                    if (!trap.userData) trap.userData = {};
+                    
+                    const dist = player.camera.position.distanceTo(trap.position);
+                    const inFront = dist <= flashlightRange;
+
+                    
+                    const mirrorCenter = trap.position.clone();
+                    mirrorCenter.y = player.camera.position.y; 
+                    const dir = mirrorCenter.clone().sub(player.camera.position).normalize();
+                    raycaster.set(player.camera.position, dir);
+                    const hits = raycaster.intersectObject(trap, true);
+                    const isLooking = hits.length > 0 && hits[0].distance < dist + 0.5;
+
+                    if (inFront && isLooking) {
+                        trap.userData._lookTimer = (trap.userData._lookTimer || 0) + delta;
+                        
+                            
+                            const shimmerThreshold = Math.max(0, PEEK_CONFIG.triggerTime - PEEK_CONFIG.shimmerLead);
+                            if (trap.userData._lookTimer > shimmerThreshold && !trap.userData._shimmered) {
+                                trap.userData._shimmered = true;
+                                
+                                const orig = trap.material.emissiveIntensity || 0;
+                                try { trap.material.emissiveIntensity = Math.min(orig + PEEK_CONFIG.mirrorHighlightIntensity, 3.0); } catch(e) {}
+                                setTimeout(() => { try { trap.material.emissiveIntensity = orig; } catch(e) {} }, Math.floor(PEEK_CONFIG.shimmerLead * 1000));
+                            }
+                            if (trap.userData._lookTimer >= PEEK_CONFIG.triggerTime) {
+                                
+                                trap.userData._lookTimer = 0;
+                                trap.userData._shimmered = false;
+                                const now = Date.now();
+                                if (!trap.userData._lastPeek || now - trap.userData._lastPeek > PEEK_CONFIG.peekCooldownMs) {
+                                    
+                                    if (Math.random() < PEEK_CONFIG.probability) {
+                                        trap.userData._lastPeek = now;
+                                        
+                                        if (Math.random() < PEEK_CONFIG.cornerPeekChance) {
+                                            const cornerPos = pickCornerSpawnNearPlayer(12);
+                                            if (cornerPos && pinky) {
+                                                
+                                                const pseudo = { userData: { spawnPoint: cornerPos.clone() } };
+                                                pinky.peekFromMirror(pseudo);
+                                                try { showMessageBox("Someone's watching you..."); } catch(e) {}
+                                            } else if (pinky) {
+                                                pinky.peekFromMirror(trap);
+                                                try { showMessageBox("Someone's watching you..."); } catch(e) {}
+                                            }
+                                        } else {
+                                            if (pinky) {
+                                                pinky.peekFromMirror(trap);
+                                                try { showMessageBox("Someone's watching you..."); } catch(e) {}
+                                            }
+                                        }
+                                    } else {
+                                        
+                                        trap.userData._lastPeek = now;
+                                    }
+                                }
+                            }
+                    } else {
+                        trap.userData._lookTimer = 0;
+                        trap.userData._shimmered = false;
+                    }
+                }
+            } catch(e) { console.warn('mirror look timers failed', e); }
+            
+            
+            if (lookingAtMirror && !lethalMirror && mirrorJumpscareCooldown <= 0) {
+                player.mirrorStareTimer += delta;
+                if (player.mirrorStareTimer > 2.0) {
+                    if (sounds.mirrorSlam) sounds.mirrorSlam.triggerAttackRelease(0.2);
+                    player.flashlightOn = false;
+                    setTimeout(() => player.flashlightOn = true, 100);
+                    setTimeout(() => player.flashlightOn = false, 200);
+                    setTimeout(() => player.flashlightOn = true, 300);
+                    player.mirrorStareTimer = 0;
+                    mirrorJumpscareCooldown = 10;
+                }
+            } else if (!lookingAtMirror) {
+                player.mirrorStareTimer = 0;
+            }
+            
+            
+            if (lethalMirror) {
+                lethalMirror.userData.timer += delta;
+                
+                if (lethalMirror.userData.timer > 2.0) {
+                     if(sounds.hiss) sounds.hiss.volume.linearRampTo(-5, 0.1);
+                     player.flashlightOn = false;
+                }
+                if (lethalMirror.userData.timer > 3.0) {
+                    gameOver("mirror");
+                }
+            }
+            
+
+            
+            if (pinky && pinky.isPeeking) {
+                if (sawPinkyThisFrame) {
+                    if (pinky._peekTimeout) clearTimeout(pinky._peekTimeout);
+                    
+                    pinky._peekTimeout = setTimeout(() => {
+                        try { screenShake(1.5, 180); } catch(e) {}
+                        setTimeout(() => {
+                            pinky.mesh.visible = false;
+                            pinky.isPeeking = false;
+                            pinky._peekTimeout = null;
+                        }, 180);
+                    }, PEEK_CONFIG.peekSeenDisappearMs);
+                }
+            }
+            
+            mirrorTraps.forEach(trap => {
+                if (trap !== lethalMirror) trap.userData.timer = 0; 
+            });
+            
+            
+            if (interactionTarget) {
+                const data = interactionTarget.userData;
+
+                if (data.type === 'item') {
+                    setPrompt(`Pick up ${data.itemType}`);
+                    if (player.keys.interact) {
+                        player.pickupItem(interactionTarget);
+                        player.keys.interact = false;
+                    }
+
+                } else if (interactionTarget.userData && interactionTarget.userData.isMovable) {
+                    // allow E to nudge movable crates when looking at them
+                    setPrompt('Push crate (E)');
+                    if (player.keys.interact) {
+                        try {
+                            const crate = interactionTarget;
+                            // push away from player
+                            const dir = crate.position.clone().sub(player.camera.position).setY(0).normalize();
+                            crate.position.add(dir.multiplyScalar(1.5));
+                            console.log('push crate to', crate.position);
+                            // ensure crate doesn't clip into geometry
+                            const crateBox = new THREE.Box3().setFromObject(crate);
+                            let blocked = false;
+                            for (const c of collidables) {
+                                if (c === crate) continue;
+                                try { if (crateBox.intersectsBox(new THREE.Box3().setFromObject(c))) { blocked = true; break; } } catch(e) {}
+                            }
+                            if (blocked) {
+                                crate.position.sub(dir.multiplyScalar(1.5));
+                            } else {
+                                if (sounds.squeak) sounds.squeak.triggerAttackRelease('C2', '0.1n');
+                                if (pinky) { pinky.setState('hunt'); pinky.hearSound(player.camera.position, 50); }
+                            }
+                            player.keys.interact = false;
+                        } catch(e) { console.warn('crate push failed', e); }
+                    }
+
+                } else if (data.type === 'locker') {
+                    // Locker open/close interaction
+                    if (!data.isOpen) {
+                        setPrompt('Open locker');
+                        if (player.keys.interact) {
+                            data.isOpen = true;
+                            try { interactionTarget.material.emissive = new THREE.Color(0x003300); } catch(e) {}
+                            try { if (interactionTarget.userData && interactionTarget.userData._interior) interactionTarget.userData._interior.userData.isHidingSpot = true; } catch(e) {}
+                            showMessageBox('You open the locker. You can hide inside.');
+                            player.keys.interact = false;
+                        }
+                    } else {
+                        setPrompt('Close locker / Hide');
+                        if (player.keys.interact) {
+                            data.isOpen = false;
+                            try { interactionTarget.material.emissive = new THREE.Color(0x000000); } catch(e) {}
+                            showMessageBox('You close the locker.');
+                            player.keys.interact = false;
+                        }
+                    }
+
+                } else if (data.type === 'stallDoor') {
+                    // Stall door open/close; enabling hiding spot inside when open
+                    if (!data.isOpen) {
+                        setPrompt('Open stall door');
+                        if (player.keys.interact) {
+                            data.isOpen = true;
+                            try { interactionTarget.rotation.y -= Math.PI / 2; } catch(e) {}
+                            try { if (interactionTarget.userData && interactionTarget.userData.linkedHiding) { interactionTarget.userData.linkedHiding.userData.isHidingSpot = true; if (hidingSpots.indexOf(interactionTarget.userData.linkedHiding) === -1) hidingSpots.push(interactionTarget.userData.linkedHiding); } } catch(e) {}
+                            showMessageBox('You open the stall. There is a toilet inside.');
+                            player.keys.interact = false;
+                        }
+                    } else {
+                        setPrompt('Close stall door');
+                        if (player.keys.interact) {
+                            data.isOpen = false;
+                            try { interactionTarget.rotation.y += Math.PI / 2; } catch(e) {}
+                            try { if (interactionTarget.userData && interactionTarget.userData.linkedHiding) { interactionTarget.userData.linkedHiding.userData.isHidingSpot = false; const idx = hidingSpots.indexOf(interactionTarget.userData.linkedHiding); if (idx !== -1) hidingSpots.splice(idx, 1); } } catch(e) {}
+                            showMessageBox('You close the stall door.');
+                            player.keys.interact = false;
+                        }
+                    }
+                    if (data.isLocked) {
+                        // KEY usage: unlock padlock but loudly trigger ENRAGED state for 2 minutes
+                        if (!data.keyUnlocked && player.inventory.key) {
+                            setPrompt("Use KEY on padlock");
+                            if (player.keys.interact) {
+                                if (sounds.doorSlam) sounds.doorSlam.triggerAttackRelease("0.2n");
+                                data.keyUnlocked = true;
+                                player.keys.interact = false;
+                                scene.children.find(obj => obj.userData.isPadlock).visible = false;
+                                if (pinky) { pinky.setState('enraged'); pinky.stateTimer = 120; }
+                                showMessageBox("You hear a loud click! Pinky is enraged!");
+                            }
+                        }
+
+                        // CROWBAR usage: requires a sustained hold (10s) to pry the chain
+                        else if (data.keyUnlocked && !data.crowbarUsed && player.inventory.crowbar) {
+                            setPrompt("Hold [E] to pry the chain (10s)");
+                            // start crowbar hold when player holds interact
+                            if (player.keys.interact && !crowbarHold.active) {
+                                crowbarHold.active = true;
+                                crowbarHold.startTime = Date.now();
+                                crowbarHold.targetDoor = interactionTarget;
+                                crowbarHold.progress = 0;
+                                crowbarHold.soundPlaying = false;
+                            }
+                            // complete or cancel is handled below in the crowbarHold updater
+                        } else {
+                            setPrompt("Locked. Needs Key and Crowbar.");
+                        }
+                    } else {
+                        setPrompt("Escape");
+                        if (player.keys.interact) gameWon("THE TALE (DOOR)");
+                    }
+                } else if (data.type === 'window') {
+                     if (data.isLocked) {
+                        if (player.inventory.pole) {
+                            setPrompt("Use JANITOR POLE to unlatch (makes noise)");
+                            if (player.keys.interact) {
+                                if (sounds.squeak) sounds.squeak.triggerAttackRelease("A4", "0.5n");
+                                data.isLocked = false;
+                                player.keys.interact = false;
+                                // Pole unlatch loudly enrages Pinky for 2 minutes
+                                if (pinky) { pinky.setState('enraged'); pinky.stateTimer = 120; }
+                                showMessageBox("The window squeaks loudly. Pinky is enraged!");
+                            }
+                        } else {
+                            setPrompt("It's too high. Need a pole.");
+                        }
+                    } else {
+                        // require two crates to be positioned at the window
+                        const windowPos = interactionTarget.position.clone();
+                        let near = 0;
+                        for (const c of movableCrates) {
+                            if (c.position.distanceTo(windowPos) < 2.2) near++;
+                        }
+                        if (near >= 2) {
+                            setPrompt("Climb stacked crates to escape");
+                            if (player.keys.interact) gameWon("THE TALE (WINDOW)");
+                        } else {
+                            setPrompt("Escape (Needs stacking of 2 crates)");
+                        }
+                    }
+                } else if (data.type === 'sewer') {
+                     if (data.isLocked) {
+                        if (player.inventory.hammer) {
+                            setPrompt(`Break Tile (${data.hitsRemaining} hits)`);
+                            if (player.keys.interact) {
+                                if (sounds.hammerHit) sounds.hammerHit.triggerAttackRelease("0.5n");
+                                data.hitsRemaining--;
+                                player.keys.interact = false;
+                                // First hit enrages Pinky for 2 minutes
+                                if (data.hitsRemaining === 2) {
+                                    if (pinky) { pinky.setState('enraged'); pinky.stateTimer = 120; }
+                                    showMessageBox("A deafening crunch! Pinky is enraged!");
+                                } else {
+                                    // subsequent hits re-trigger a hunt if Pinky calmed
+                                    if (pinky) { pinky.setState('hunt'); pinky.stateTimer = 10; }
+                                }
+                                if (data.hitsRemaining <= 0) {
+                                    data.isLocked = false;
+                                    showMessageBox("The tile breaks open. You can jump into the hole.");
+                                }
+                            }
+                        } else {
+                            setPrompt(player.inventory.note ? "The floor is weak... Need a hammer." : "Tile looks loose.");
+                        }
+                    } else {
+                        setPrompt("Escape");
+                        if (player.keys.interact) gameWon("THE DEPTHS (SEWER)");
+                    }
+                }
+            } else {
+                hidePrompt();
+            }
+        }
+        
+        let promptTimeout;
+        function setPrompt(text, duration = 0) {
+            promptText.textContent = text;
+            promptElement.style.display = 'block';
+            
+            if (promptTimeout) clearTimeout(promptTimeout);
+            if (duration > 0) {
+                promptTimeout = setTimeout(hidePrompt, duration);
+            }
+        }
+        function hidePrompt() {
+            promptElement.style.display = 'none';
+        }
+
+        
+        function onWindowResize() {
+            if (!camera) return;
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function onPointerLockChange() {
+            isPointerLocked = document.pointerLockElement === document.body;
+            if (!isPointerLocked && gameState === 'playing') {
+                
+                setPrompt('Click the game area to re-enable mouse look', 3000);
+                
+                try { if (player) player.controlsLocked = false; } catch (e) {  }
+            }
+            if (isPointerLocked && gameState === 'intro') {
+                document.exitPointerLock();
+            }
+        }
+        
+        function setGameState(newState) {
+            gameState = newState;
+            
+            menuScreen.style.display = 'none';
+            settingsScreen.style.display = 'none';
+            gameContainer.style.display = 'none';
+            hud.style.display = 'none';
+            pauseScreen.style.display = 'none';
+            endScreen.style.display = 'none';
+            dialogueBox.style.display = 'none';
+            hidePrompt();
+            
+            if (newState !== 'playing' && newState !== 'intro') {
+                document.exitPointerLock();
+                isPointerLocked = false;
+                cursor.style.display = 'block';
+            } else {
+                cursor.style.display = 'none';
+            }
+
+            switch(newState) {
+                case 'menu':
+                    menuScreen.style.display = 'flex';
+                    break;
+                case 'settings':
+                    settingsScreen.style.display = 'flex';
+                    break;
+                case 'intro':
+                    gameContainer.style.display = 'block';
+                    hud.style.display = 'block';
+                    dialogueBox.style.display = 'block';
+                    break;
+                case 'playing':
+                    gameContainer.style.display = 'block';
+                    hud.style.display = 'block';
+                            
+                            
+                            
+                            try { if (player) player.controlsLocked = false; } catch (e) {  }
+                    break;
+                case 'paused':
+                    pauseScreen.style.display = 'flex';
+                    break;
+                case 'end':
+                    endScreen.style.display = 'flex';
+                    break;
+            }
+        }
+        
+        function togglePause() {
+            if (gameState === 'playing') {
+                setGameState('paused');
+            } else if (gameState === 'paused') {
+                setGameState('playing');
+                document.body.requestPointerLock();
+            }
+        }
+        
+        function startGame() {
+            player.camera.position.set(0, player.height, 5);
+            player.euler.x = 0; player.euler.y = 0;
+            player.camera.quaternion.setFromEuler(player.euler);
+            player.inventory = { key: false, crowbar: false, hammer: false, pole: false, note: false };
+            player.fearLevel = 0;
+            
+            ['key', 'crowbar', 'hammer', 'pole', 'note'].forEach(item => {
+                document.getElementById(`inv-${item}`).classList.remove('filled');
+            });
+            
+            placeItems();
+            
+            interactables.forEach(item => {
+                if (item.userData.type === 'door') {
+                    item.userData.isLocked = true;
+                    item.userData.keyUnlocked = false;
+                    item.userData.crowbarUsed = false;
+                }
+                if (item.userData.type === 'window') item.userData.isLocked = true;
+                if (item.userData.type === 'sewer') {
+                    item.userData.isLocked = true;
+                    item.userData.hitsRemaining = 3;
+                }
+            });
+            
+            scene.children.find(obj => obj.userData.isPadlock).visible = true;
+            scene.children.find(obj => obj.userData.isChain).visible = true;
+            
+            if(pinky) pinky.setState('ambient'); 
+            if(pinky) pinky.mesh.position.set(0, 0, -20);
+            
+            setGameState('playing');
+        }
+        
+        function gameOver(reason) {
+            if (sounds.jumpscare) sounds.jumpscare.triggerAttackRelease(0.5);
+            
+            
+            jumpscareSequence();
+            
+            jumpscareOverlay.style.display = 'block';
+            if (reason === "mirror") {
+                
+                jumpscareOverlay.style.backgroundImage = "url('https://placehold.co/600x400/000000/8b0000?text=PINKY&font=creepster')";
+                jumpscareOverlay.style.backgroundSize = "contain";
+                jumpscareOverlay.style.backgroundRepeat = "no-repeat";
+            } else {
+                jumpscareOverlay.style.backgroundImage = "none";
+                jumpscareOverlay.style.backgroundColor = '#ff0000';
+            }
+
+            setTimeout(() => {
+                jumpscareOverlay.style.backgroundColor = '#000';
+                setTimeout(() => {
+                    jumpscareOverlay.style.display = 'none';
+                    jumpscareOverlay.style.backgroundImage = "none";
+                }, 500);
+            }, 100);
+            
+            endTitle.textContent = "CLAIMED";
+            endTitle.style.color = "#e00000";
+            if (reason === "mirror") {
+                endText.textContent = "You stared too long. Pinky Pinky pulled you through the glass. You are gone. The legend is real.";
+            } else {
+                endText.textContent = "You were caught by Pinky Pinky. Your friends are gone. You are gone. The legend is real.";
+            }
+            setGameState('end');
+        }
+
+        function gameWon(title) {
+            
+            fadeToBlack(1000).then(() => {
+                endTitle.textContent = title;
+                endTitle.style.color = "#00ff00";
+                
+                let text = "You burst through the door and ran. You never looked back.";
+                if (title.includes("WINDOW")) {
+                    text = "You scrambled out the high window and fell to the ground. You ran and never looked back.";
+                } else if (title.includes("SEWER")) {
+                    text = "You leaped into the darkness, wading through the filth until you found a way out. You never looked back.";
+                }
+                endText.textContent = text + " You tried to tell them what happened. No one ever believed your tale.";
+                
+                setGameState('end');
+                fadeFromBlack(1000);
+            });
+        }
+        
+        
+        window.addEventListener("gamepadconnected", (e) => {
+            console.log("Gamepad connected:", e.gamepad.id);
+            gameSettings.gamepadIndex = e.gamepad.index;
+            gamepadStatus.textContent = `Connected: ${e.gamepad.id}`;
+            gamepadStatus.style.color = "#4ade80";
+        });
+        window.addEventListener("gamepaddisconnected", (e) => {
+            console.log("Gamepad disconnected.");
+            gameSettings.gamepadIndex = null;
+            gamepadStatus.textContent = "No controller detected.";
+            gamepadStatus.style.color = "#9ca3af";
+        });
+
+        
+        document.getElementById('play-button').addEventListener('click', () => {
+            
+            if (typeof Tone !== 'undefined' && Tone.context.state !== 'running') {
+                Tone.start().then(() => {
+                    console.log("AudioContext started.");
+                    initSounds(); 
+                    if (!scene) init();
+                    startIntro();
+                }).catch(e => console.error("AudioContext failed to start:", e));
+            } else if (!soundsInitialized) {
+                 initSounds(); 
+                 if (!scene) init();
+                 startIntro();
+            } else {
+                if (!scene) init();
+                startIntro();
+            }
+        });
+        
+        document.getElementById('settings-button').addEventListener('click', () => setGameState('settings'));
+        document.getElementById('settings-back-button').addEventListener('click', () => {
+             setGameState(pauseScreen.style.display === 'flex' ? 'paused' : 'menu');
+        });
+        document.getElementById('resume-button').addEventListener('click', togglePause);
+        document.getElementById('pause-settings-button').addEventListener('click', () => setGameState('settings'));
+        document.getElementById('pause-menu-button').addEventListener('click', () => {
+            if (pinky) pinky.setState('ambient');
+            setGameState('menu');
+        });
+        document.getElementById('end-button').addEventListener('click', () => {
+            if (pinky) pinky.setState('ambient');
+            setGameState('menu');
+        });
+        
+        mouseSlider.addEventListener('input', (e) => {
+            gameSettings.mouseSensitivity = parseFloat(e.target.value);
+            mouseValue.textContent = gameSettings.mouseSensitivity.toFixed(1);
+        });
+
+        
+        init(); 
+
+    </script>
+</body>
+</html>
